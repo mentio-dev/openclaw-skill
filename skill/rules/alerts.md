@@ -2,7 +2,7 @@
 
 # Alerts and channels
 
-An alert is a rule times one or more channels. The rule says what to watch (a `filter` over keywords, platforms, minimum relevance, sentiments, intents, author reach and tags, excluded authors) and when: `instant` fires per mention as it is classified, `daily` sends one digest at `schedule` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; `skipEmpty` skips days with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
+An alert is a rule times one or more channels. The rule says what to watch (a `filter` over keywords, platforms, minimum relevance, sentiments, intents, author reach and tags, the hosts a post links to in `linkHosts`, excluded authors) and when: `instant` fires per mention as it is classified, `daily` sends one digest at `schedule` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; `skipEmpty` skips days with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
 
 Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. `email` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). `webhook` takes a URL and optional headers of the user's own; the response carries `config.secret` ONCE, which signs every delivery (`X-Mentions-Signature`, hex HMAC-SHA256 of the raw body), so show it to the user right away.
 
@@ -86,6 +86,7 @@ Body (JSON):
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
 - `schedule` (object): Required for daily alerts.
   - `hour` (integer, required)
   - `minute` (integer)
@@ -132,6 +133,7 @@ Body (JSON): Omitted fields are untouched.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
 - `schedule` (object, nullable)
   - `hour` (integer, required)
   - `minute` (integer)
@@ -375,6 +377,7 @@ Returns: 200, an object:
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
 - `schedule` (object, required, nullable): Daily alerts only.
   - `hour` (integer, required)
   - `minute` (integer)

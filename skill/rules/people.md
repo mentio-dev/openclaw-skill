@@ -4,7 +4,7 @@
 
 People are the authors behind the mentions: one row per person with every account of theirs (`accounts`), reach (`reach.followers`), the public profile when the platform has one (`profile`: bio, company, location, website, email, linked accounts), per-workspace `stats` (mentions, negatives, intents seen, first and last seen) and the workspace's own `annotations` (tags, notes, muted). Ids are `aut_...`; an account merged into someone resolves to that person.
 
-Sorting answers most questions: `reach` for influencers, `new` for new voices, `mentions` for the loudest, `recent` for the latest. Filters stack: `minFollowers`, `intents`, `keywordKinds` (people who mentioned a competitor), `neverKeywordKinds` (and never the brand), `newSinceDays`, `tags`. The list is offset-paginated (`{ data, total }`, `limit` and `offset`).
+Sorting answers most questions: `reach` for influencers, `new` for new voices, `mentions` for the loudest, `recent` for the latest. Filters stack: `minFollowers`, `intents`, `keywordKinds` (people who mentioned a competitor), `neverKeywordKinds` (and never the brand), `newSinceDays`, `tags`, `linkHosts` (people who have shared a link to that host). The list is offset-paginated (`{ data, total }`, `limit` and `offset`).
 
 A segment is a saved people filter with a name, evaluated live on every read (`GET /v1/segments` returns each with its current size and a few presets to save as a starting point); pass `segmentId` to `GET /v1/people` to list its members. Annotations are per workspace: tags and notes for the user's own organization, `muted` hides the person's posts from the feed and every channel without touching ingest or billing. A merge declares two accounts one human; a split undoes it. Confirm before merging or deleting a segment.
 
@@ -71,6 +71,7 @@ Query:
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
+- `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 - `limit` (integer): Page size, 1 to 100.
 - `offset` (integer, nullable): Skip this many people. Offset paging: a grouped read over hundreds of people, not a stream.
@@ -159,6 +160,7 @@ Query:
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
+- `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 
 Returns: 200, CSV text.
@@ -192,6 +194,7 @@ Body (JSON):
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
   - `newSinceDays` (integer): First seen within this many days.
+  - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
 
 Returns: 201, a `Segment` (see Shapes below).
@@ -233,6 +236,7 @@ Body (JSON): Omitted fields are untouched.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
   - `newSinceDays` (integer): First seen within this many days.
+  - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
 
 Returns: 200, a `Segment` (see Shapes below).
@@ -309,6 +313,7 @@ Returns: 204, no body.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
   - `newSinceDays` (integer): First seen within this many days.
+  - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
 - `count` (integer, required): People in the segment right now; it is evaluated on every read.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
