@@ -45,8 +45,10 @@ curl -sS "https://api.mentio.dev/v1/channels/dest_.../deliveries?limit=20" -H "A
 | `GET` | `/v1/alerts/{id}` | `mentio alerts:get` | Get an alert |
 | `PATCH` | `/v1/alerts/{id}` | `mentio alerts:update` | Update an alert |
 | `DELETE` | `/v1/alerts/{id}` | `mentio alerts:delete` | Delete an alert |
+| `POST` | `/v1/alerts/{id}/mute` | `mentio alerts:mute` | Mute authors on an alert |
 | `POST` | `/v1/alerts/{id}/run` | `mentio alerts:run` | Send a digest now |
 | `POST` | `/v1/alerts/{id}/test` | `mentio alerts:test` | Send a test through an alert's channels |
+| `POST` | `/v1/alerts/{id}/unmute` | `mentio alerts:unmute` | Unmute authors on an alert |
 | `GET` | `/v1/channels` | `mentio channels:list` | List channels |
 | `POST` | `/v1/channels` | `mentio channels:create` | Create a channel |
 | `GET` | `/v1/channels/{id}` | `mentio channels:get` | Get a channel |
@@ -152,6 +154,22 @@ Path:
 
 Returns: 204, no body.
 
+### POST /v1/alerts/{id}/mute
+
+**Mute authors on an alert.** Add authors to the alert's muted list without touching the rest of its filter. Links are read the way the dashboard reads them: a post link mutes its author, twitter.com becomes x.com, a Hacker News profile keeps its id. Authors already muted are skipped, so a retry is safe. An entry that names no person (a subreddit, a story) rejects the request with that entry named.
+
+CLI: `mentio alerts:mute`
+
+Path:
+
+- `id` (string, required): Alert id (feed_...).
+
+Body (JSON): Authors to add to or remove from the alert's muted list.
+
+- `authors` (array of string, required): Profile or post links (x.com/name, linkedin.com/in/name, reddit.com/user/name, a post URL), handles (@name, u/name), Bluesky DIDs or display names. A link is stored as the author's profile; a plain name or handle matches that name on every platform.
+
+Returns: 200, a `Alert` (see Shapes below).
+
 ### POST /v1/alerts/{id}/run
 
 **Send a digest now.**
@@ -188,6 +206,22 @@ Returns: 200, an object:
   - `channelId` (string, required)
   - `ok` (boolean, required)
   - `error` (string, required, nullable)
+
+### POST /v1/alerts/{id}/unmute
+
+**Unmute authors on an alert.** Remove authors from the alert's muted list without touching the rest of its filter. Name each one by the stored entry or by any link to that profile or its posts. Authors that are not muted are ignored, so a retry is safe.
+
+CLI: `mentio alerts:unmute`
+
+Path:
+
+- `id` (string, required): Alert id (feed_...).
+
+Body (JSON): Authors to add to or remove from the alert's muted list.
+
+- `authors` (array of string, required): Profile or post links (x.com/name, linkedin.com/in/name, reddit.com/user/name, a post URL), handles (@name, u/name), Bluesky DIDs or display names. A link is stored as the author's profile; a plain name or handle matches that name on every platform.
+
+Returns: 200, a `Alert` (see Shapes below).
 
 ### GET /v1/channels
 

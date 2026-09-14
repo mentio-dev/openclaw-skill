@@ -65,6 +65,7 @@ Query:
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `linkHost` (array of string, nullable): Only posts linking to any of these hosts, matched exactly and without `www.` (docs.mentio.dev). Repeatable, or comma-separated.
 - `q` (string): Substring search in the post text.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -127,6 +128,7 @@ Query:
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `linkHost` (array of string, nullable): Only posts linking to any of these hosts, matched exactly and without `www.` (docs.mentio.dev). Repeatable, or comma-separated.
 - `q` (string): Substring search in the post text.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -149,6 +151,7 @@ Returns: 200, CSV text.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin.
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
+  - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
   - `replyTo` (object, required, nullable): The post this one replies to (X, Bluesky); null for top-level posts.
     - `author` (string, required, nullable): Parent post author as the platform names them.
