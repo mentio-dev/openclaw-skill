@@ -1,6 +1,6 @@
 {
   "name": "@mentions/openclaw-skill",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "The Mentio skill for OpenClaw, published to ClawHub as `mentio`: SKILL.md plus one rule file per API area, the reference parts generated from the OpenAPI document.",
   "type": "module",
