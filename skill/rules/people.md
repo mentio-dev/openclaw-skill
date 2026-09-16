@@ -54,7 +54,7 @@ curl -sS "https://api.mentio.dev/v1/people?segmentId=seg_...&sort=reach" -H "Aut
 
 ### GET /v1/people
 
-**List people.** The people behind your mentions: one row per person, with their accounts, reach, public profile, per-workspace stats, your annotations and where your outreach stands. Filter by platform, tag, follower range, mention counts, intents seen, keyword kinds mentioned or never mentioned, outreach stage, owner, or a saved segment. Offset-paginated with a total.
+**List people.** The people behind your mentions: one row per person, with their accounts, reach, public profile, per-workspace stats, your annotations and where your outreach stands. Filter by platform, tag, follower range, mention counts, intents seen, keyword kinds mentioned or never mentioned, outreach stage, owner, automated (bot accounts, whose matched posts are mostly machine-made), or a saved segment. Offset-paginated with a total.
 
 CLI: `mentio people:list`
 
@@ -81,6 +81,7 @@ Query:
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest; omitted: everyone.
 - `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 - `limit` (integer): Page size, 1 to 100.
@@ -221,6 +222,7 @@ Query:
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest; omitted: everyone.
 - `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 
@@ -261,6 +263,7 @@ Body (JSON):
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 Returns: 201, a `Segment` (see Shapes below).
@@ -308,6 +311,7 @@ Body (JSON): Omitted fields are untouched.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 Returns: 200, a `Segment` (see Shapes below).
@@ -410,6 +414,7 @@ Returns: 204, no body.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 - `count` (integer, required): People in the segment right now; it is evaluated on every read.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.

@@ -57,6 +57,7 @@ Query:
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
 - `intent` (string): Only mentions carrying this intent (buy_intent, question, complaint, praise, comparison).
+- `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
@@ -130,6 +131,7 @@ Query:
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
 - `intent` (string): Only mentions carrying this intent (buy_intent, question, complaint, praise, comparison).
+- `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
@@ -189,6 +191,7 @@ Returns: 200, CSV text.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
   - `intents` (array of string, required): Detected intents: buy_intent, question, complaint, praise, comparison.
+  - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
   - `note` (string, required, nullable): One sentence from the classifier explaining the score.
   - `failed` (boolean, required): true when the model could not score this post; it stays in the feed and is not billed.
 - `triage` (object, required)
