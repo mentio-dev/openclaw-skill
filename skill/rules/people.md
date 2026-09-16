@@ -73,6 +73,9 @@ Query:
 - `minMentions` (integer): At least this many matched mentions.
 - `minNegative` (integer): At least this many negative mentions.
 - `intents` (array of string, nullable): At least one mention carrying any of these intents.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Nobody with an account on these platforms. Repeatable, or comma-separated.
+- `notTags` (array of string, nullable): Nobody carrying any of these tags. Repeatable, or comma-separated.
+- `notIntents` (array of string, nullable): Nobody whose mentions carry any of these intents. Repeatable, or comma-separated.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
@@ -210,6 +213,9 @@ Query:
 - `minMentions` (integer): At least this many matched mentions.
 - `minNegative` (integer): At least this many negative mentions.
 - `intents` (array of string, nullable): At least one mention carrying any of these intents.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Nobody with an account on these platforms. Repeatable, or comma-separated.
+- `notTags` (array of string, nullable): Nobody carrying any of these tags. Repeatable, or comma-separated.
+- `notIntents` (array of string, nullable): Nobody whose mentions carry any of these intents. Repeatable, or comma-separated.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
@@ -248,6 +254,9 @@ Body (JSON):
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Nobody with an account on these platforms.
+  - `notTags` (array of string): Nobody carrying any of these tags.
+  - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
@@ -292,6 +301,9 @@ Body (JSON): Omitted fields are untouched.
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Nobody with an account on these platforms.
+  - `notTags` (array of string): Nobody carrying any of these tags.
+  - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
@@ -391,6 +403,9 @@ Returns: 204, no body.
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Nobody with an account on these platforms.
+  - `notTags` (array of string): Nobody carrying any of these tags.
+  - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.

@@ -66,6 +66,16 @@ Query:
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
+- `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+- `notKeywordIds` (array of string, nullable): Never matches of these keywords.
+- `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+- `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `intents` (array of string, nullable): Only mentions carrying any of these intents.
+- `notIntents` (array of string, nullable): Never mentions carrying these intents.
+- `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
+- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `q` (string): Substring search in the post text.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -129,6 +139,16 @@ Query:
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
+- `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+- `notKeywordIds` (array of string, nullable): Never matches of these keywords.
+- `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+- `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `intents` (array of string, nullable): Only mentions carrying any of these intents.
+- `notIntents` (array of string, nullable): Never mentions carrying these intents.
+- `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
+- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `q` (string): Substring search in the post text.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
