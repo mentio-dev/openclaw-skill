@@ -2,7 +2,9 @@
 
 # People and segments
 
-People are the authors behind the mentions: one row per person with every account of theirs (`accounts`), reach (`reach.followers`), the public profile when the platform has one (`profile`: bio, company, location, website, email, linked accounts), per-workspace `stats` (mentions, negatives, intents seen, first and last seen) and the workspace's own `annotations` (tags, notes, muted). Ids are `aut_...`; an account merged into someone resolves to that person.
+People are the authors behind the mentions: one row per person with every account of theirs (`accounts`), reach (`reach.followers`), the public profile when the platform has one (`profile`: bio, company, location, website, email, linked accounts), per-workspace `stats` (mentions, negatives, intents seen, first and last seen), the workspace's own `annotations` (tags, notes, muted) and its `outreach` (the teammate who owns the contact, the stage from `not_contacted` to `customer` or `not_a_fit`, and when someone last reached out). Ids are `aut_...`; an account merged into someone resolves to that person.
+
+Outreach is logged, not guessed: `POST /v1/people/{id}/activities` records that someone reached out (a `channel` and a short `note`), and `GET` on the same path reads the log. The first activity claims an unowned person for whoever reached out and moves them to `contacted`; it never takes a person from an owner or moves a stage back (set those with `PATCH /v1/people/{id}`). Before suggesting a contact, read the owner and the log so two teammates never write to the same person.
 
 Sorting answers most questions: `reach` for influencers, `new` for new voices, `mentions` for the loudest, `recent` for the latest. Filters stack: `minFollowers`, `intents`, `keywordKinds` (people who mentioned a competitor), `neverKeywordKinds` (and never the brand), `newSinceDays`, `tags`, `linkHosts` (people who have shared a link to that host). The list is offset-paginated (`{ data, total }`, `limit` and `offset`).
 
@@ -38,6 +40,9 @@ curl -sS "https://api.mentio.dev/v1/people?segmentId=seg_...&sort=reach" -H "Aut
 | `GET` | `/v1/people` | `mentio people:list` | List people |
 | `GET` | `/v1/people/{id}` | `mentio people:get` | Get a person |
 | `PATCH` | `/v1/people/{id}` | `mentio people:update` | Update your annotations on a person |
+| `GET` | `/v1/people/{id}/activities` | `mentio people:activities` | List outreach activities |
+| `POST` | `/v1/people/{id}/activities` | `mentio people:log-activity` | Log an outreach activity |
+| `DELETE` | `/v1/people/{id}/activities/{activityId}` | `mentio people:delete-activity` | Delete an outreach activity |
 | `POST` | `/v1/people/{id}/merge` | `mentio people:merge` | Merge an account into a person |
 | `POST` | `/v1/people/{id}/split` | `mentio people:split` | Undo a merge |
 | `GET` | `/v1/people/export.csv` | `mentio people:export` | Export people as CSV |
@@ -49,7 +54,7 @@ curl -sS "https://api.mentio.dev/v1/people?segmentId=seg_...&sort=reach" -H "Aut
 
 ### GET /v1/people
 
-**List people.** The people behind your mentions: one row per person, with their accounts, reach, public profile, per-workspace stats and your annotations. Filter by platform, tag, follower range, mention counts, intents seen, keyword kinds mentioned or never mentioned, or a saved segment. Offset-paginated with a total.
+**List people.** The people behind your mentions: one row per person, with their accounts, reach, public profile, per-workspace stats, your annotations and where your outreach stands. Filter by platform, tag, follower range, mention counts, intents seen, keyword kinds mentioned or never mentioned, outreach stage, owner, or a saved segment. Offset-paginated with a total.
 
 CLI: `mentio people:list`
 
@@ -72,6 +77,8 @@ Query:
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
+- `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 - `limit` (integer): Page size, 1 to 100.
 - `offset` (integer, nullable): Skip this many people. Offset paging: a grouped read over hundreds of people, not a stream.
@@ -92,7 +99,7 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### PATCH /v1/people/{id}
 
-**Update your annotations on a person.** Tags, notes and mute, for your workspace only. Mute hides their posts from your feed and every channel; ingest and billing never change.
+**Update your annotations on a person.** Tags, notes, mute, and the outreach owner (a workspace member; null clears) and stage, for your workspace only. Mute hides their posts from your feed and every channel; ingest and billing never change.
 
 CLI: `mentio people:update`
 
@@ -105,12 +112,58 @@ Body (JSON): Omitted fields are untouched.
 - `tags` (array of string): Replaces the whole list.
 - `notes` (string)
 - `muted` (boolean)
+- `ownerId` (string, nullable): The member who owns the contact (user id); null clears.
+- `stage` (string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
 
 Returns: 200, a `Person` (see Shapes below).
 
+### GET /v1/people/{id}/activities
+
+**List outreach activities.** Every logged contact with this person across all their accounts, newest first (at most 200): who reached out, the channel, when, and a short note. Read it before reaching out so two teammates never contact the same person without knowing.
+
+CLI: `mentio people:activities`
+
+Path:
+
+- `id` (string, required): Person id (aut_...).
+
+Returns: 200, `{ data: PersonActivity[] }` (see Shapes below).
+
+### POST /v1/people/{id}/activities
+
+**Log an outreach activity.** Record that a teammate reached out to this person: an email, a DM, a call. The first activity claims an unowned person for whoever reached out and moves not_contacted to contacted; an existing owner and a later stage are kept. `memberId` defaults to the signed-in member; an API key that omits it logs an unattributed activity, which claims nobody.
+
+CLI: `mentio people:log-activity`
+
+Path:
+
+- `id` (string, required): Person id (aut_...).
+
+Body (JSON):
+
+- `channel` (string, required): one of `email`, `x`, `linkedin`, `bluesky`, `reddit`, `github`, `call`, `meeting`, `other`. How they were reached: email, x, linkedin, bluesky, reddit, github, call, meeting or other.
+- `note` (string): What was sent or said, briefly.
+- `occurredAt` (string): When the contact happened (ISO 8601, or epoch ms). Defaults to now.
+- `memberId` (string): The member who reached out (user id). Defaults to the signed-in member; an API key that omits it logs an unattributed activity.
+
+Returns: 201, a `PersonActivity` (see Shapes below).
+
+### DELETE /v1/people/{id}/activities/{activityId}
+
+**Delete an outreach activity.** Remove a contact logged by mistake. The person's owner and stage stay as they are.
+
+CLI: `mentio people:delete-activity`
+
+Path:
+
+- `id` (string, required): Person id (aut_...).
+- `activityId` (string, required): Activity id (act_...).
+
+Returns: 204, no body.
+
 ### POST /v1/people/{id}/merge
 
-**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only. Their mentions, tags and notes combine under the person named by `into`.
+**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only. Their mentions, tags, notes and outreach activities combine under the person named by `into`, which keeps its owner and stage unless it had none.
 
 CLI: `mentio people:merge`
 
@@ -138,7 +191,7 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### GET /v1/people/export.csv
 
-**Export people as CSV.** The same list as GET /v1/people (segmentId included) as CSV, one row per person with their contact columns: handle, followers, email, website, company, location, tags. Capped at 5,000 people. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export people as CSV.** The same list as GET /v1/people (segmentId included) as CSV, one row per person with their contact columns: handle, followers, email, website, company, location, tags, then outreach stage, owner and last contacted. Capped at 5,000 people. At most 6 exports per minute per workspace; a 429 carries Retry-After.
 
 CLI: `mentio people:export`
 
@@ -161,6 +214,8 @@ Query:
 - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
+- `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
 
 Returns: 200, CSV text.
@@ -196,6 +251,8 @@ Body (JSON):
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
+  - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 Returns: 201, a `Segment` (see Shapes below).
 
@@ -238,6 +295,8 @@ Body (JSON): Omitted fields are untouched.
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
+  - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 Returns: 200, a `Segment` (see Shapes below).
 
@@ -296,6 +355,26 @@ Returns: 204, no body.
   - `tags` (array of string, required)
   - `notes` (string, required)
   - `muted` (boolean, required): Their posts stay out of the feed and every channel; ingest and billing are untouched.
+- `outreach` (object, required): Where your workspace stands with the person. The first logged activity claims an unowned person for whoever reached out and moves not_contacted to contacted.
+  - `owner` (object, required, nullable): The teammate who owns the contact; null when nobody does, or the owner left the workspace.
+    - `id` (string, required): User id of the workspace member.
+    - `name` (string, required, nullable)
+    - `email` (string, required, nullable)
+  - `stage` (string, required): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
+  - `lastContactedAt` (string, required, nullable): The newest logged activity; null when nobody logged a contact.
+
+### PersonActivity
+
+- `id` (string, required): Activity id (act_...).
+- `personId` (string, required): The person it belongs to (aut_...).
+- `channel` (string, required): one of `email`, `x`, `linkedin`, `bluesky`, `reddit`, `github`, `call`, `meeting`, `other`. How they were reached: email, x, linkedin, bluesky, reddit, github, call, meeting or other.
+- `note` (string, required): What was sent or said, briefly; empty when nothing was written.
+- `member` (object, required, nullable): Who reached out; null when an API key logged it without naming a member, or that member left the workspace.
+  - `id` (string, required): User id of the workspace member.
+  - `name` (string, required, nullable)
+  - `email` (string, required, nullable)
+- `occurredAt` (string, required): When the contact happened.
+- `createdAt` (string, required): When it was logged.
 
 ### Segment
 
@@ -315,6 +394,8 @@ Returns: 204, no body.
   - `newSinceDays` (integer): First seen within this many days.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
+  - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 - `count` (integer, required): People in the segment right now; it is evaluated on every read.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 - `updatedAt` (string, required): ISO 8601 timestamp, UTC.
