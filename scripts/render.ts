@@ -32,13 +32,15 @@ const JSON_HEADERS = `${AUTH} -H "Content-Type: application/json"`;
 const AREAS: Area[] = [
   {
     slug: 'keywords',
-    title: 'Keywords',
-    nouns: ['keywords'],
+    title: 'Keywords and workspace filters',
+    nouns: ['keywords', 'filters'],
     intro: `A keyword is a word or phrase Mentio watches, matched case-insensitively as a phrase on every platform or on the ones in \`platforms\`. \`kind\` says what it is to the workspace: \`brand\` (their own names), \`competitor\` (the others), \`topic\` (the space); share of voice and segments read it. Matching, classification and delivery start on the next poll of each platform (real time on Bluesky, minutes to an hour elsewhere, up to 12 hours on YouTube).
 
-Before creating one, list the keywords: the same normalized term twice is a \`409 duplicate_keyword\`. A keyword costs $5 per month, debited daily from the prepaid balance, and every mention it matches $0.008; a \`402\` means the balance cannot cover it (see rules/errors.md). Muting stops polling and matching but keeps the mentions; deleting removes the keyword and its matches (posts also matched by another keyword stay). Confirm with the user before deleting.
+Before creating one, list the keywords: the same normalized term twice is a \`409 duplicate_keyword\`. A keyword costs $5 per month, debited daily from the prepaid balance, and every mention it matches $0.008; a \`402\` means the balance cannot cover it (see rules/errors.md). Muting stops polling and matching but keeps the mentions; deleting removes the keyword and its matches (posts also matched by another keyword stay) and takes it out of every alert rule that named it (a rule that named only it is disabled, never widened). Confirm with the user before deleting.
 
-\`stats\` counts every match ever (\`mentions\`, the billed number), the relevant ones, and the last 7 days. \`polling\` reports, per polled platform, the last poll and how many polls in a row found nothing, which is how you tell "nothing is being said" from "not polled yet".`,
+A common word needs rules, and the rules decide what gets STORED, so a post they reject is never classified, delivered or billed. Per keyword, \`matching\`: \`requiredTerms\` the post must also contain (\`requiredMode\` \`any\` or \`all\`), \`excludedTerms\` that drop it (a \`*\` at an end is a wildcard: \`beta.*\`), \`excludedAuthors\` (links, handles or names, like an alert's mute list), \`caseSensitive\` for an acronym (\`RAG\`). Per workspace, \`GET /v1/filters\` and \`PATCH /v1/filters\`: \`excludedTerms\` and \`excludedAuthors\` for every keyword, \`excludedRepos\` (GitHub owner/name), \`subreddits.only\` and \`subreddits.excluded\`. Lists replace; \`[]\` clears. \`context\` on a keyword is one sentence the classifier reads for that term only ("Arc is our browser, not the geometry word"): it changes scores, not what is stored. When the user complains about a noisy keyword, read its \`stats\` and \`matching\` first, then add rules; when they complain about missed posts, check the platforms and the rules before anything else.
+
+\`stats\` counts every match ever (\`mentions\`, the billed number), the relevant ones, the last 7 days, and the user's own verdicts (\`feedback.relevant\`, \`feedback.notRelevant\`: a high notRelevant count says the rules or the context need work). \`polling\` reports, per polled platform, the last poll and how many polls in a row found nothing, which is how you tell "nothing is being said" from "not polled yet".`,
     examples: `# Every keyword with its stats and poll health
 curl -sS "${API}/v1/keywords" ${AUTH}
 
@@ -52,7 +54,20 @@ curl -sS -X POST "${API}/v1/keywords" ${JSON_HEADERS} \\
 
 # Pause one, then widen it back to every platform
 curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} -d '{"muted": true}'
-curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} -d '{"platforms": null}'`,
+curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} -d '{"platforms": null}'
+
+# A common word: the editor "Cursor", never the pointer, with a hint for the classifier
+curl -sS -X POST "${API}/v1/keywords" ${JSON_HEADERS} \\
+  -d '{"term": "cursor", "kind": "brand", "context": "Cursor is the AI code editor; ignore the pointer and the database cursor.", "matching": {"requiredTerms": ["editor", "ide", "ai"], "requiredMode": "any", "excludedTerms": ["mouse", "sql"]}}'
+
+# An acronym, exact case only; drop the company's own posts from one keyword
+curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} \\
+  -d '{"matching": {"caseSensitive": true, "excludedAuthors": ["https://x.com/acmedev"]}}'
+
+# Workspace-wide noise: job posts, a bot, a repo, a subreddit
+curl -sS "${API}/v1/filters" ${AUTH}
+curl -sS -X PATCH "${API}/v1/filters" ${JSON_HEADERS} \\
+  -d '{"excludedTerms": ["hiring", "job opening"], "excludedAuthors": ["https://github.com/dependabot"], "excludedRepos": ["facebook/react"], "subreddits": {"excluded": ["jobs"]}}'`,
   },
   {
     slug: 'mentions',
@@ -60,11 +75,11 @@ curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} -d '{"platform
     nouns: ['mentions'],
     intro: `A mention is one post matched to one keyword; a post that matches two keywords is two mentions with two ids. Each one nests \`post\` (platform, url, text, publishedAt), \`author\` (name, handle, url, followers, your tags; \`null\` for an anonymous post), \`classification\` (\`null\` until the classifier has run: relevance 0 to 100, sentiment, intents, a one-line note) and \`triage\` (assignee, snooze, note). \`relevant\` is true from relevance 40 up; \`priority\` is an attention score from relevance, author reach, the strongest intent and age, so \`sort=priority\` answers "what should I look at".
 
-Intents are \`buy_intent\`, \`question\`, \`complaint\`, \`praise\` and \`comparison\`. Status is the user's triage: \`open\` (untouched), \`ignored\` (hidden from the feed and every channel), \`done\` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until \`snoozedUntil\`. Muted people are hidden unless \`includeMuted=true\`.
+Intents are \`buy_intent\`, \`question\`, \`complaint\`, \`praise\` and \`comparison\`; \`language\` is the post's ISO 639-1 code (\`en\`, \`es\`) or null when unknown. Status is the user's triage: \`open\` (untouched), \`ignored\` (hidden from the feed and every channel), \`done\` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until \`snoozedUntil\`. Muted people are hidden unless \`includeMuted=true\`.
 
-Searching: default to \`relevant=true\` unless the user asks about noise, use \`since\` for "this week", \`platform\` for "on Hacker News", \`sentiment\`/\`intent\` for "complaints" or "buying signals", \`q\` for a substring, and 20 to 50 as \`limit\`. Results are newest first and paged with \`nextCursor\`: pass it back as \`cursor\` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
+Searching: default to \`relevant=true\` unless the user asks about noise, use \`since\` for "this week", \`platform\` for "on Hacker News", \`sentiment\`/\`intent\` for "complaints" or "buying signals", \`languages\` for "in Spanish", \`isReply=false\` for "top-level posts only", \`minFollowers\`/\`maxFollowers\` for reach, \`q\` for a substring of the text or the author's name, \`alertId\` for "what would my Slack rule send", and 20 to 50 as \`limit\`. Results are newest first and paged with \`nextCursor\`: pass it back as \`cursor\` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
 
-Triage is one write: \`PATCH /v1/mentions/{id}\` with only the fields to change; \`null\` clears a field. The CSV export takes the same filters as the list and is capped at 10,000 rows.`,
+Triage is one write: \`PATCH /v1/mentions/{id}\` with only the fields to change; \`null\` clears a field. The same write takes the user's verdict on the classifier: \`relevant: false\` when they say a mention is noise (relevance becomes 0 and it leaves the relevant feed, the digests and the counts), \`relevant: true\` when the classifier missed one, \`sentiment\` to correct the label; \`null\` withdraws a verdict and restores the classifier's value. Verdicts never bill or unbill; \`classification.feedback\` shows them with the values they replaced. A mention still being classified answers \`409 classification_pending\`: wait a moment. The CSV export takes the same filters as the list and is capped at 10,000 rows.`,
     examples: `# Relevant negative mentions from the last 7 days, most urgent first
 curl -sS "${API}/v1/mentions?relevant=true&sentiment=negative&since=$(date -u -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT00:00:00Z)&sort=priority&limit=20" ${AUTH}
 
@@ -79,6 +94,15 @@ curl -sS -X PATCH "${API}/v1/mentions/mm_7f3a..." ${JSON_HEADERS} \\
   -d '{"status": "done", "note": "Replied in thread"}'
 curl -sS -X PATCH "${API}/v1/mentions/mm_7f3a..." ${JSON_HEADERS} \\
   -d '{"snoozedUntil": "2026-09-14T09:00:00Z"}'
+
+# The user says one is noise, another was missed, a third is not negative at all
+curl -sS -X PATCH "${API}/v1/mentions/mm_7f3a..." ${JSON_HEADERS} -d '{"relevant": false}'
+curl -sS -X PATCH "${API}/v1/mentions/mm_8a1b..." ${JSON_HEADERS} -d '{"relevant": true}'
+curl -sS -X PATCH "${API}/v1/mentions/mm_9c2d..." ${JSON_HEADERS} -d '{"sentiment": "neutral"}'
+
+# Spanish top-level posts from accounts with an audience, and what one alert rule would send
+curl -sS "${API}/v1/mentions?languages=es&isReply=false&minFollowers=1000&limit=25" ${AUTH}
+curl -sS "${API}/v1/mentions?alertId=feed_...&limit=25" ${AUTH}
 
 # Export this month's relevant mentions to a file
 curl -sS "${API}/v1/mentions/export.csv?relevant=true&since=2026-09-01T00:00:00Z" ${AUTH} -o mentions.csv`,
@@ -115,7 +139,7 @@ curl -sS "${API}/v1/people?segmentId=seg_...&sort=reach" ${AUTH}`,
     slug: 'alerts',
     title: 'Alerts and channels',
     nouns: ['alerts', 'channels'],
-    intro: `An alert is a rule times one or more channels. The rule says what to watch (a \`filter\` over keywords, platforms, minimum relevance, sentiments, intents, author reach and tags, the hosts a post links to in \`linkHosts\`, excluded authors) and when: \`instant\` fires per mention as it is classified, \`daily\` sends one digest at \`schedule\` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; \`skipEmpty\` skips days with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
+    intro: `An alert is a rule times one or more channels. The rule says what to watch (a \`filter\` over keywords, platforms, minimum relevance, sentiments, intents, \`languages\` (ISO 639-1), author reach and tags, the hosts a post links to in \`linkHosts\`, excluded authors, \`automated\` for or against bots) and when: \`instant\` fires per mention as it is classified, \`daily\` sends one digest at \`schedule\` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; \`weekly\` sends one a week on \`schedule.weekday\` (0 Sunday to 6 Saturday) covering the week; \`skipEmpty\` skips periods with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
 
 Channels by kind: \`slack\` and \`telegram\` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. \`email\` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). \`webhook\` takes a URL and optional headers of the user's own; the response carries \`config.secret\` ONCE, which signs every delivery (\`X-Mentions-Signature\`, hex HMAC-SHA256 of the raw body), so show it to the user right away.
 
@@ -127,10 +151,12 @@ curl -sS "${API}/v1/channels" ${AUTH}
 curl -sS -X POST "${API}/v1/alerts" ${JSON_HEADERS} \\
   -d '{"name": "Negative mentions", "mode": "instant", "filter": {"sentiments": ["negative"]}, "channelIds": ["dest_..."]}'
 
-# A daily digest at 09:00 Madrid time by email, skipping empty days
+# A daily digest at 09:00 Madrid time by email, skipping empty days; a weekly one every Monday
 curl -sS -X POST "${API}/v1/channels" ${JSON_HEADERS} -d '{"kind": "email", "emails": ["team@example.com"]}'
 curl -sS -X POST "${API}/v1/alerts" ${JSON_HEADERS} \\
   -d '{"name": "Morning digest", "mode": "daily", "schedule": {"hour": 9, "minute": 0, "timezone": "Europe/Madrid", "skipEmpty": true}, "filter": {}, "channelIds": ["dest_..."]}'
+curl -sS -X POST "${API}/v1/alerts" ${JSON_HEADERS} \\
+  -d '{"name": "Week in review", "mode": "weekly", "schedule": {"hour": 9, "minute": 0, "timezone": "Europe/Madrid", "weekday": 1}, "filter": {"languages": ["es"]}, "channelIds": ["dest_..."]}'
 
 # A webhook to the user's own service (keep config.secret from the response), with buying signals as the event
 curl -sS -X POST "${API}/v1/channels" ${JSON_HEADERS} \\
@@ -148,12 +174,13 @@ curl -sS "${API}/v1/channels/dest_.../deliveries?limit=20" ${AUTH}`,
     nouns: ['analytics'],
     intro: `Four named reports over one window grammar. The window is \`range\` (\`7d\`, \`30d\`, \`90d\`, \`365d\`, ending today; default 30d) or \`from\` and \`to\` (YYYY-MM-DD, inclusive), cut into days in \`timezone\` (IANA, default UTC); \`keywordIds\` and \`platforms\` narrow it; \`compare=true\` adds the period of the same length right before as \`previous\`, which is how to say "up 40% on last month". Every report carries the \`window\` it covered.
 
-Which report answers what: \`summary\` for the headline numbers (matched, relevant, posts, people, sentiment split, buying intent, questions, reach, triage state); \`series\` for "over time" (per day or week, one total or split \`by=platform\` or \`by=keyword\`); \`breakdown\` for "which platform / keyword / sentiment / intent / status / hour of the week / person" (one table grouped \`by\` that dimension); \`share-of-voice\` for "us against the competitors" (every brand and competitor keyword with its share of their combined matches; topics are counted but stay out of the split). \`matched\` counts every match, relevant or not (the number usage counts); \`relevant\` is what was delivered.`,
+Which report answers what: \`summary\` for the headline numbers (matched, relevant, posts, people, sentiment split, buying intent, questions, reach, triage state); \`series\` for "over time" (\`bucket\` hour for a launch day, day, week or month; one total or split \`by=platform\`, \`by=keyword\` or \`by=sentiment\`); \`breakdown\` for "which platform / keyword / sentiment / intent / status / hour of the week / person / language" (one table grouped \`by\` that dimension); \`share-of-voice\` for "us against the competitors" (every brand and competitor keyword with its share of their combined matches; topics are counted but stay out of the split). \`matched\` counts every match, relevant or not (the number usage counts); \`relevant\` is what was delivered, the user's own verdicts included.`,
     examples: `# This week against last week, in the user's zone
 curl -sS "${API}/v1/analytics/summary?range=7d&compare=true&timezone=Europe/Madrid" ${AUTH}
 
-# Mentions per day for 30 days, one line per platform
+# Mentions per day for 30 days, one line per platform; sentiment by hour on launch day
 curl -sS "${API}/v1/analytics/series?range=30d&by=platform&bucket=day" ${AUTH}
+curl -sS "${API}/v1/analytics/series?from=2026-09-18&to=2026-09-18&by=sentiment&bucket=hour&timezone=Europe/Madrid" ${AUTH}
 
 # Which intents show up, and when in the week people post
 curl -sS "${API}/v1/analytics/breakdown?by=intent&range=30d" ${AUTH}
@@ -164,20 +191,37 @@ curl -sS "${API}/v1/analytics/share-of-voice?range=90d&platforms=reddit,hackerne
   },
   {
     slug: 'account',
-    title: 'Company profile, API keys and health',
-    nouns: ['company', 'api-keys', 'health'],
-    intro: `The company profile is what the classifier knows about the user: \`name\`, \`description\`, \`useCases\`, their own \`accounts\` (so their own posts are recognized) and the \`context\` composed from them, which is what the model actually reads. It is the biggest lever on relevance: when the user complains about noise or missed mentions, read the profile, then improve the description and use cases in their words (what the company does, for whom, what it is not). Setting \`context\` directly overrides the composition until the next profile edit. New mentions are scored with the new context at once; old ones are not rescored.
+    title: 'Company profile, credentials, usage, team and health',
+    nouns: ['company', 'api-keys', 'whoami', 'usage', 'members', 'health'],
+    intro: `Start a session with \`GET /v1/whoami\`: the workspace the credential acts on (name it back to the user), whether it may write (\`auth.scope\`), and for a key its id and expiry. A \`read\` credential answers \`403 read_only_key\` on every write, so knowing early saves a failed call.
 
-API keys belong to one workspace and are \`read\` (GET only; a write answers \`403 read_only_key\`) or \`write\`. The key is returned once at creation and only its hash is stored; list shows prefixes. Creating or revoking keys needs a write key. Do not create keys unless asked, and hand a new key to the user once without storing it anywhere. \`GET /v1/health\` needs no key and says whether the API is up.`,
-    examples: `# Read the profile the classifier uses, then sharpen it
+The company profile is what the classifier knows about the user: \`name\`, \`description\`, \`useCases\`, \`competitors\` (by name), \`guidelines\` (free-text rules: what counts as relevant, what never does), their \`website\` and own \`accounts\` (so their own posts are recognized), and the \`context\` composed from them, which is what the model actually reads. It is the biggest lever on relevance: when the user complains about noise or missed mentions, read the profile, then improve the description, the use cases and the guidelines in their words (what the company does, for whom, what it is not). Setting \`context\` directly overrides the composition until the next profile edit. New mentions are scored with the new context at once; old ones are not rescored. A per-keyword \`context\` (rules/keywords.md) refines it for one term.
+
+API keys belong to one workspace and are \`read\` (GET only) or \`write\`; \`expiresAt\` makes one stop working at an instant, the right shape for a contractor or a one-off script. The key is returned once at creation and only its hash is stored; list shows prefixes and expiries. Creating or revoking keys needs a write key. Do not create keys unless asked, and hand a new key to the user once without storing it anywhere.
+
+\`GET /v1/usage\` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it, and point at https://app.mentio.dev/billing to add funds.
+
+The team: \`GET /v1/members\` lists everyone with their role and user id (what \`assigneeId\` and \`ownerId\` take, so resolve a name here before assigning). Changing the team needs a signed-in owner or admin behind the credential (an OAuth token from an MCP sign-in, or the dashboard session); an API key answers \`403\`, since a key has no person behind it. \`POST /v1/members/invitations\` emails an invitation (admin or member; 48 hours; the same address twice returns the open invitation), \`GET\` lists the open ones, \`DELETE /v1/members/invitations/{id}\` revokes one, \`DELETE /v1/members/{id}\` removes a member (only an owner removes an owner, never the last one). Confirm before removing anyone. \`GET /v1/health\` needs no key and says whether the API is up.`,
+    examples: `# Who am I, and may I write?
+curl -sS "${API}/v1/whoami" ${AUTH}
+
+# Read the profile the classifier uses, then sharpen it
 curl -sS "${API}/v1/company" ${AUTH}
 curl -sS -X PATCH "${API}/v1/company" ${JSON_HEADERS} \\
-  -d '{"name": "Acme", "description": "Acme is a hosted feature-flag service for backend teams. Not the fictional Acme from cartoons.", "useCases": ["Ship behind flags", "Kill switches in production", "Gradual rollouts"], "accounts": {"x": "acmedev", "linkedin": "acme-dev"}}'
+  -d '{"name": "Acme", "description": "Acme is a hosted feature-flag service for backend teams. Not the fictional Acme from cartoons.", "useCases": ["Ship behind flags", "Kill switches in production", "Gradual rollouts"], "competitors": ["LaunchDarkly", "Unleash"], "guidelines": "Posts about feature flags, rollouts and our API are relevant. Job listings and cartoon references never are.", "accounts": {"x": "acmedev", "linkedin": "acme-dev"}}'
 
-# Keys: list, mint a read-only one for a script, revoke it later
+# Keys: list, mint a read-only one that dies in a week, revoke it later
 curl -sS "${API}/v1/api-keys" ${AUTH}
-curl -sS -X POST "${API}/v1/api-keys" ${JSON_HEADERS} -d '{"name": "nightly report", "scope": "read"}'
+curl -sS -X POST "${API}/v1/api-keys" ${JSON_HEADERS} -d '{"name": "nightly report", "scope": "read", "expiresAt": "2026-09-25T00:00:00Z"}'
 curl -sS -X DELETE "${API}/v1/api-keys/key_..." ${AUTH}
+
+# How much is left, and is tracking running?
+curl -sS "${API}/v1/usage" ${AUTH}
+
+# The team: who is in, invite someone, take an invitation back
+curl -sS "${API}/v1/members" ${AUTH}
+curl -sS -X POST "${API}/v1/members/invitations" ${JSON_HEADERS} -d '{"email": "ana@example.com", "role": "member"}'
+curl -sS -X DELETE "${API}/v1/members/invitations/inv_..." ${AUTH}
 
 # Is the API up? (no key needed)
 curl -sS "${API}/v1/health"`,

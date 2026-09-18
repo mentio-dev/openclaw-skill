@@ -4,7 +4,7 @@
 
 Four named reports over one window grammar. The window is `range` (`7d`, `30d`, `90d`, `365d`, ending today; default 30d) or `from` and `to` (YYYY-MM-DD, inclusive), cut into days in `timezone` (IANA, default UTC); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before as `previous`, which is how to say "up 40% on last month". Every report carries the `window` it covered.
 
-Which report answers what: `summary` for the headline numbers (matched, relevant, posts, people, sentiment split, buying intent, questions, reach, triage state); `series` for "over time" (per day or week, one total or split `by=platform` or `by=keyword`); `breakdown` for "which platform / keyword / sentiment / intent / status / hour of the week / person" (one table grouped `by` that dimension); `share-of-voice` for "us against the competitors" (every brand and competitor keyword with its share of their combined matches; topics are counted but stay out of the split). `matched` counts every match, relevant or not (the number usage counts); `relevant` is what was delivered.
+Which report answers what: `summary` for the headline numbers (matched, relevant, posts, people, sentiment split, buying intent, questions, reach, triage state); `series` for "over time" (`bucket` hour for a launch day, day, week or month; one total or split `by=platform`, `by=keyword` or `by=sentiment`); `breakdown` for "which platform / keyword / sentiment / intent / status / hour of the week / person / language" (one table grouped `by` that dimension); `share-of-voice` for "us against the competitors" (every brand and competitor keyword with its share of their combined matches; topics are counted but stay out of the split). `matched` counts every match, relevant or not (the number usage counts); `relevant` is what was delivered, the user's own verdicts included.
 
 Base URL `https://api.mentio.dev`, `Authorization: Bearer $MENTIO_API_KEY` on every request, JSON in and out. The `mentio` CLI command for each endpoint is listed for when it is installed (rules/cli.md).
 
@@ -14,8 +14,9 @@ Base URL `https://api.mentio.dev`, `Authorization: Bearer $MENTIO_API_KEY` on ev
 # This week against last week, in the user's zone
 curl -sS "https://api.mentio.dev/v1/analytics/summary?range=7d&compare=true&timezone=Europe/Madrid" -H "Authorization: Bearer $MENTIO_API_KEY"
 
-# Mentions per day for 30 days, one line per platform
+# Mentions per day for 30 days, one line per platform; sentiment by hour on launch day
 curl -sS "https://api.mentio.dev/v1/analytics/series?range=30d&by=platform&bucket=day" -H "Authorization: Bearer $MENTIO_API_KEY"
+curl -sS "https://api.mentio.dev/v1/analytics/series?from=2026-09-18&to=2026-09-18&by=sentiment&bucket=hour&timezone=Europe/Madrid" -H "Authorization: Bearer $MENTIO_API_KEY"
 
 # Which intents show up, and when in the week people post
 curl -sS "https://api.mentio.dev/v1/analytics/breakdown?by=intent&range=30d" -H "Authorization: Bearer $MENTIO_API_KEY"
@@ -49,7 +50,7 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out).
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out), language (ISO 639-1; "unknown" for posts without one).
 
 Returns: 200, a `AnalyticsBreakdown` (see Shapes below).
 
@@ -68,8 +69,8 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
-- `bucket` (string): one of `day`, `week`. Point granularity. Default: day up to 90 days, week beyond. Weeks start on Monday.
-- `by` (string): one of `platform`, `keyword`. Split into one series per platform or per keyword (the top 20 by matched, the rest folded into "other"). Omit for one total series.
+- `bucket` (string): one of `hour`, `day`, `week`, `month`. Point granularity: hour (windows of at most 14 days), day, week (Monday start) or month. Default: day up to 90 days, week beyond.
+- `by` (string): one of `platform`, `keyword`, `sentiment`. Split into one series per platform, per keyword (the top 20 by matched, the rest folded into "other") or per sentiment (positive, neutral, negative, unclassified). Omit for one total series.
 
 Returns: 200, a `AnalyticsSeries` (see Shapes below).
 
@@ -118,7 +119,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `to` (string, required): Last day, inclusive.
   - `days` (integer, required): Length of the window in days.
   - `timezone` (string, required): IANA zone the days were cut in.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`. The dimension the rows are grouped by.
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`. The dimension the rows are grouped by.
 - `data` (array of object, required): Most matched first, at most 50 groups. by=hour is chronological and unlimited (168 cells at most).
   - `key` (string, required): The group: platform name, keyword id, sentiment, intent, status, "weekday-hour" for by=hour, or an opaque person key.
   - `label` (string, required): Readable name: the keyword term, the person name, otherwise the key.
@@ -155,16 +156,16 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `to` (string, required): Last day, inclusive.
   - `days` (integer, required): Length of the window in days.
   - `timezone` (string, required): IANA zone the days were cut in.
-  - `bucket` (string, required): one of `day`, `week`. Point granularity: day, or week (Monday to Sunday).
+  - `bucket` (string, required): one of `hour`, `day`, `week`, `month`. Point granularity used: hour, day, week (Monday to Sunday) or month.
 - `data` (array of object, required): One item per series, most matched first; a single "total" item when not split.
-  - `key` (string, required): Platform name, keyword id, "total" for the unsplit series, or "other" for the keys beyond the top 20.
-  - `label` (string, required): Readable name: the platform, the keyword term, "Total" or "Other".
+  - `key` (string, required): Platform name, keyword id, sentiment (positive, neutral, negative, unclassified), "total" for the unsplit series, or "other" for the keys beyond the top 20.
+  - `label` (string, required): Readable name: the platform, the keyword term, the sentiment, "Total" or "Other".
   - `keyword` (object, required, nullable): Set when split by keyword; null otherwise.
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
   - `points` (array of object, required): One point per bucket across the window, oldest first, zero-filled.
-    - `date` (string, required): The day, or the Monday of the week.
+    - `date` (string, required): The bucket start in `timezone`: the day (YYYY-MM-DD), the Monday of the week, the first of the month, or the hour as YYYY-MM-DDTHH:00.
     - `matched` (integer, required): Every match published in the bucket.
     - `relevant` (integer, required): Of those, scored at or above the relevance threshold.
     - `positive` (integer, required): Classified positive.
@@ -172,14 +173,14 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `negative` (integer, required): Classified negative.
     - `unclassified` (integer, required): Not scored: still queued, or the classifier failed on it.
 - `previous` (array of object, required, nullable): The same items over the period right before the window, in the same order, points aligned by index with `data` (the last bucket may be missing when weeks split differently); null unless compare=true.
-  - `key` (string, required): Platform name, keyword id, "total" for the unsplit series, or "other" for the keys beyond the top 20.
-  - `label` (string, required): Readable name: the platform, the keyword term, "Total" or "Other".
+  - `key` (string, required): Platform name, keyword id, sentiment (positive, neutral, negative, unclassified), "total" for the unsplit series, or "other" for the keys beyond the top 20.
+  - `label` (string, required): Readable name: the platform, the keyword term, the sentiment, "Total" or "Other".
   - `keyword` (object, required, nullable): Set when split by keyword; null otherwise.
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
   - `points` (array of object, required): One point per bucket across the window, oldest first, zero-filled.
-    - `date` (string, required): The day, or the Monday of the week.
+    - `date` (string, required): The bucket start in `timezone`: the day (YYYY-MM-DD), the Monday of the week, the first of the month, or the hour as YYYY-MM-DDTHH:00.
     - `matched` (integer, required): Every match published in the bucket.
     - `relevant` (integer, required): Of those, scored at or above the relevance threshold.
     - `positive` (integer, required): Classified positive.

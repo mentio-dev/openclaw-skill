@@ -2,7 +2,7 @@
 
 # Alerts and channels
 
-An alert is a rule times one or more channels. The rule says what to watch (a `filter` over keywords, platforms, minimum relevance, sentiments, intents, author reach and tags, the hosts a post links to in `linkHosts`, excluded authors) and when: `instant` fires per mention as it is classified, `daily` sends one digest at `schedule` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; `skipEmpty` skips days with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
+An alert is a rule times one or more channels. The rule says what to watch (a `filter` over keywords, platforms, minimum relevance, sentiments, intents, `languages` (ISO 639-1), author reach and tags, the hosts a post links to in `linkHosts`, excluded authors, `automated` for or against bots) and when: `instant` fires per mention as it is classified, `daily` sends one digest at `schedule` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; `weekly` sends one a week on `schedule.weekday` (0 Sunday to 6 Saturday) covering the week; `skipEmpty` skips periods with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
 
 Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. `email` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). `webhook` takes a URL and optional headers of the user's own; the response carries `config.secret` ONCE, which signs every delivery (`X-Mentions-Signature`, hex HMAC-SHA256 of the raw body), so show it to the user right away.
 
@@ -20,10 +20,12 @@ curl -sS "https://api.mentio.dev/v1/channels" -H "Authorization: Bearer $MENTIO_
 curl -sS -X POST "https://api.mentio.dev/v1/alerts" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" \
   -d '{"name": "Negative mentions", "mode": "instant", "filter": {"sentiments": ["negative"]}, "channelIds": ["dest_..."]}'
 
-# A daily digest at 09:00 Madrid time by email, skipping empty days
+# A daily digest at 09:00 Madrid time by email, skipping empty days; a weekly one every Monday
 curl -sS -X POST "https://api.mentio.dev/v1/channels" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"kind": "email", "emails": ["team@example.com"]}'
 curl -sS -X POST "https://api.mentio.dev/v1/alerts" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" \
   -d '{"name": "Morning digest", "mode": "daily", "schedule": {"hour": 9, "minute": 0, "timezone": "Europe/Madrid", "skipEmpty": true}, "filter": {}, "channelIds": ["dest_..."]}'
+curl -sS -X POST "https://api.mentio.dev/v1/alerts" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" \
+  -d '{"name": "Week in review", "mode": "weekly", "schedule": {"hour": 9, "minute": 0, "timezone": "Europe/Madrid", "weekday": 1}, "filter": {"languages": ["es"]}, "channelIds": ["dest_..."]}'
 
 # A webhook to the user's own service (keep config.secret from the response), with buying signals as the event
 curl -sS -X POST "https://api.mentio.dev/v1/channels" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" \
@@ -68,7 +70,7 @@ Returns: 200, `{ data: Alert[] }` (see Shapes below).
 
 ### POST /v1/alerts
 
-**Create an alert.**
+**Create an alert.** A rule (what to watch, the filter) times channels. mode instant sends each matching mention as it happens; daily sends one digest at schedule.hour in schedule.timezone; weekly sends one a week on schedule.weekday (0 Sunday to 6 Saturday).
 
 CLI: `mentio alerts:create`
 
@@ -76,7 +78,7 @@ Body (JSON):
 
 - `name` (string, required)
 - `enabled` (boolean)
-- `mode` (string): one of `instant`, `daily`
+- `mode` (string): one of `instant`, `daily`, `weekly`
 - `filter` (object)
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
@@ -87,11 +89,14 @@ Body (JSON):
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
-- `schedule` (object): Required for daily alerts.
+  - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+  - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
+- `schedule` (object): Required for daily and weekly alerts (weekly ones also need schedule.weekday).
   - `hour` (integer, required)
   - `minute` (integer)
   - `timezone` (string, required)
   - `skipEmpty` (boolean)
+  - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, nullable): Custom event name for webhook payloads; null for the mode default.
 - `channelIds` (array of string): Channel ids from GET /v1/channels.
 
@@ -123,7 +128,7 @@ Body (JSON): Omitted fields are untouched.
 
 - `name` (string)
 - `enabled` (boolean)
-- `mode` (string): one of `instant`, `daily`
+- `mode` (string): one of `instant`, `daily`, `weekly`
 - `filter` (object): Replaces the whole filter.
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
@@ -134,11 +139,14 @@ Body (JSON): Omitted fields are untouched.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
+  - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+  - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
 - `schedule` (object, nullable)
   - `hour` (integer, required)
   - `minute` (integer)
   - `timezone` (string, required)
   - `skipEmpty` (boolean)
+  - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, nullable)
 - `channelIds` (array of string): Replaces the whole list.
 
@@ -367,7 +375,7 @@ Returns: 200, an object:
 - `id` (string, required): Alert id (feed_...).
 - `name` (string, required)
 - `enabled` (boolean, required)
-- `mode` (string, required): one of `instant`, `daily`. instant: each matching mention as it happens. daily: one digest at the scheduled local time.
+- `mode` (string, required): one of `instant`, `daily`, `weekly`. instant: each matching mention as it happens. daily: one digest at the scheduled local time. weekly: one digest a week, on schedule.weekday.
 - `filter` (object, required)
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
@@ -378,11 +386,14 @@ Returns: 200, an object:
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
-- `schedule` (object, required, nullable): Daily alerts only.
+  - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+  - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
+- `schedule` (object, required, nullable): Daily and weekly alerts only.
   - `hour` (integer, required)
   - `minute` (integer)
   - `timezone` (string, required)
   - `skipEmpty` (boolean)
+  - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, required): Event name carried in webhook payloads; the mode default unless you set one.
 - `channels` (array of object, required): Where it sends.
   - `id` (string, required)
@@ -391,7 +402,7 @@ Returns: 200, an object:
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `sentLast7d` (integer, required): Deliveries in the last 7 days, across channels.
   - `lastSentAt` (string, required, nullable): ISO 8601 timestamp, UTC.
-  - `nextRunAt` (string, required, nullable): Daily alerts: the next digest; null when disabled or instant.
+  - `nextRunAt` (string, required, nullable): Daily and weekly alerts: the next digest; null when disabled or instant.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 
 ### SlackChannel

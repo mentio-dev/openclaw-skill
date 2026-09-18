@@ -4,11 +4,11 @@
 
 A mention is one post matched to one keyword; a post that matches two keywords is two mentions with two ids. Each one nests `post` (platform, url, text, publishedAt), `author` (name, handle, url, followers, your tags; `null` for an anonymous post), `classification` (`null` until the classifier has run: relevance 0 to 100, sentiment, intents, a one-line note) and `triage` (assignee, snooze, note). `relevant` is true from relevance 40 up; `priority` is an attention score from relevance, author reach, the strongest intent and age, so `sort=priority` answers "what should I look at".
 
-Intents are `buy_intent`, `question`, `complaint`, `praise` and `comparison`. Status is the user's triage: `open` (untouched), `ignored` (hidden from the feed and every channel), `done` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until `snoozedUntil`. Muted people are hidden unless `includeMuted=true`.
+Intents are `buy_intent`, `question`, `complaint`, `praise` and `comparison`; `language` is the post's ISO 639-1 code (`en`, `es`) or null when unknown. Status is the user's triage: `open` (untouched), `ignored` (hidden from the feed and every channel), `done` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until `snoozedUntil`. Muted people are hidden unless `includeMuted=true`.
 
-Searching: default to `relevant=true` unless the user asks about noise, use `since` for "this week", `platform` for "on Hacker News", `sentiment`/`intent` for "complaints" or "buying signals", `q` for a substring, and 20 to 50 as `limit`. Results are newest first and paged with `nextCursor`: pass it back as `cursor` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
+Searching: default to `relevant=true` unless the user asks about noise, use `since` for "this week", `platform` for "on Hacker News", `sentiment`/`intent` for "complaints" or "buying signals", `languages` for "in Spanish", `isReply=false` for "top-level posts only", `minFollowers`/`maxFollowers` for reach, `q` for a substring of the text or the author's name, `alertId` for "what would my Slack rule send", and 20 to 50 as `limit`. Results are newest first and paged with `nextCursor`: pass it back as `cursor` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
 
-Triage is one write: `PATCH /v1/mentions/{id}` with only the fields to change; `null` clears a field. The CSV export takes the same filters as the list and is capped at 10,000 rows.
+Triage is one write: `PATCH /v1/mentions/{id}` with only the fields to change; `null` clears a field. The same write takes the user's verdict on the classifier: `relevant: false` when they say a mention is noise (relevance becomes 0 and it leaves the relevant feed, the digests and the counts), `relevant: true` when the classifier missed one, `sentiment` to correct the label; `null` withdraws a verdict and restores the classifier's value. Verdicts never bill or unbill; `classification.feedback` shows them with the values they replaced. A mention still being classified answers `409 classification_pending`: wait a moment. The CSV export takes the same filters as the list and is capped at 10,000 rows.
 
 Base URL `https://api.mentio.dev`, `Authorization: Bearer $MENTIO_API_KEY` on every request, JSON in and out. The `mentio` CLI command for each endpoint is listed for when it is installed (rules/cli.md).
 
@@ -30,6 +30,15 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/mentions/mm_7f3a..." -H "Authorizat
 curl -sS -X PATCH "https://api.mentio.dev/v1/mentions/mm_7f3a..." -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" \
   -d '{"snoozedUntil": "2026-09-14T09:00:00Z"}'
 
+# The user says one is noise, another was missed, a third is not negative at all
+curl -sS -X PATCH "https://api.mentio.dev/v1/mentions/mm_7f3a..." -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"relevant": false}'
+curl -sS -X PATCH "https://api.mentio.dev/v1/mentions/mm_8a1b..." -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"relevant": true}'
+curl -sS -X PATCH "https://api.mentio.dev/v1/mentions/mm_9c2d..." -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"sentiment": "neutral"}'
+
+# Spanish top-level posts from accounts with an audience, and what one alert rule would send
+curl -sS "https://api.mentio.dev/v1/mentions?languages=es&isReply=false&minFollowers=1000&limit=25" -H "Authorization: Bearer $MENTIO_API_KEY"
+curl -sS "https://api.mentio.dev/v1/mentions?alertId=feed_...&limit=25" -H "Authorization: Bearer $MENTIO_API_KEY"
+
 # Export this month's relevant mentions to a file
 curl -sS "https://api.mentio.dev/v1/mentions/export.csv?relevant=true&since=2026-09-01T00:00:00Z" -H "Authorization: Bearer $MENTIO_API_KEY" -o mentions.csv
 ```
@@ -45,7 +54,7 @@ curl -sS "https://api.mentio.dev/v1/mentions/export.csv?relevant=true&since=2026
 
 ### GET /v1/mentions
 
-**List mentions.** Mentions matched to your keywords, filtered and paginated. Default order is newest match first; sort=priority ranks the last 30 days of matches by attention score. Page with nextCursor, passing the same filters and sort. A mention is one post matched to one keyword.
+**List mentions.** Mentions matched to your keywords, filtered and paginated. Default order is newest match first; sort=priority ranks the last 30 days of matches by attention score. Page with nextCursor, passing the same filters and sort. A mention is one post matched to one keyword. alertId applies an alert rule's filter on top of the others: the same mentions that rule would send.
 
 CLI: `mentio mentions:search`
 
@@ -65,6 +74,9 @@ Query:
 - `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
+- `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
+- `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
+- `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
@@ -77,7 +89,9 @@ Query:
 - `notIntents` (array of string, nullable): Never mentions carrying these intents.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
-- `q` (string): Substring search in the post text.
+- `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+- `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+- `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
 - `sort` (string): one of `newest`, `priority`. newest: by match time, newest first. priority: by attention score, highest first; priority ranks the last 30 days of matches only, older ones stay reachable under newest. Cursors are specific to a sort.
@@ -100,7 +114,7 @@ Returns: 200, a `Mention` (see Shapes below).
 
 ### PATCH /v1/mentions/{id}
 
-**Update a mention.** The one write on a mention. Set status to ignored or done to handle it (open puts it back), assign it to a workspace member, snooze it out of the feed, or leave an internal note. Null clears a field; omitted fields are untouched. Delivery and billing never change.
+**Update a mention.** The one write on a mention. Set status to ignored or done to handle it (open puts it back), assign it to a workspace member, snooze it out of the feed, leave an internal note, or correct the classifier: `relevant` true or false is your verdict (relevance becomes 100 or 0, and every list, filter, digest and report follows it), `sentiment` replaces the label; null withdraws a verdict and restores the classifier's value. Omitted fields are untouched. Delivery and billing never change.
 
 CLI: `mentio mentions:update`
 
@@ -114,6 +128,8 @@ Body (JSON): Every field is optional; omitted fields are untouched.
 - `assigneeId` (string, nullable): A workspace member (user id), or null to unassign.
 - `snoozedUntil` (string): ISO 8601 (or epoch ms) until which the mention leaves the feed; null wakes it.
 - `note` (string, nullable): Internal note; null or empty clears it.
+- `relevant` (boolean, nullable): Your verdict on relevance, correcting the classifier: true sets relevance to 100 and puts a filtered mention back in the relevant feed, false sets it to 0 and takes it out; null withdraws the verdict and restores the classifier's score. Never billed or unbilled. A mention still being classified answers 409 classification_pending.
+- `sentiment` (string, nullable): one of `positive`, `neutral`, `negative`. Your corrected sentiment; null withdraws the correction and restores the classifier's.
 
 Returns: 200, a `Mention` (see Shapes below).
 
@@ -139,6 +155,9 @@ Query:
 - `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
+- `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
+- `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
+- `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
@@ -151,7 +170,9 @@ Query:
 - `notIntents` (array of string, nullable): Never mentions carrying these intents.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
-- `q` (string): Substring search in the post text.
+- `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+- `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+- `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
 
@@ -187,13 +208,21 @@ Returns: 200, CSV text.
   - `avatarUrl` (string, required, nullable): Profile picture; null where the platform has none.
   - `followers` (integer, required, nullable): Follower count as of their newest post; null where the platform has none.
   - `tags` (array of string, required): Your workspace tags on this person.
-- `classification` (object, required, nullable): The classifier verdict; null while the post is still queued for classification.
+- `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
   - `intents` (array of string, required): Detected intents: buy_intent, question, complaint, praise, comparison.
   - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
+  - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown or classified before languages were recorded.
   - `note` (string, required, nullable): One sentence from the classifier explaining the score.
   - `failed` (boolean, required): true when the model could not score this post; it stays in the feed and is not billed.
+  - `feedback` (object, required, nullable): A person's correction of the verdict, or null. A relevance verdict sets `relevance` to 100 or 0 and `relevant` with it; a corrected sentiment replaces `sentiment`. Every list, filter, digest and report reads the corrected values.
+    - `relevant` (boolean, required, nullable): Your verdict on relevance, or null when you only corrected the sentiment.
+    - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Your corrected sentiment, or null when you only judged relevance.
+    - `at` (string, required): When the last verdict was given.
+    - `original` (object, required): The classifier values your feedback replaced.
+      - `relevance` (integer, required, nullable): What the classifier scored before your verdict; null if it had not scored it.
+      - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. The sentiment the classifier gave before your correction.
 - `triage` (object, required)
   - `assignee` (object, required, nullable): Workspace member this mention is assigned to; null when unassigned.
     - `id` (string, required)
