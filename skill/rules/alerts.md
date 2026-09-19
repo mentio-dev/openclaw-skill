@@ -83,8 +83,9 @@ Body (JSON):
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
   - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
-  - `intents` (array of string): At least one of these intents.
+  - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
@@ -133,8 +134,9 @@ Body (JSON): Omitted fields are untouched.
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
   - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
-  - `intents` (array of string): At least one of these intents.
+  - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.
@@ -380,8 +382,9 @@ Returns: 200, an object:
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
   - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
-  - `intents` (array of string): At least one of these intents.
+  - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors your workspace tagged with any of these.

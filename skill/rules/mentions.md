@@ -4,7 +4,7 @@
 
 A mention is one post matched to one keyword; a post that matches two keywords is two mentions with two ids. Each one nests `post` (platform, url, text, publishedAt), `author` (name, handle, url, followers, your tags; `null` for an anonymous post), `classification` (`null` until the classifier has run: relevance 0 to 100, sentiment, intents, a one-line note) and `triage` (assignee, snooze, note). `relevant` is true from relevance 40 up; `priority` is an attention score from relevance, author reach, the strongest intent and age, so `sort=priority` answers "what should I look at".
 
-Intents are `buy_intent`, `question`, `complaint`, `praise` and `comparison`; `language` is the post's ISO 639-1 code (`en`, `es`) or null when unknown. Status is the user's triage: `open` (untouched), `ignored` (hidden from the feed and every channel), `done` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until `snoozedUntil`. Muted people are hidden unless `includeMuted=true`.
+Intent and topic tags are `buy_intent`, `question`, `complaint`, `praise`, `comparison`, `churn_intent`, `bug_report`, `pricing`, `hiring`, `event` and `promotional`; `confidence` (0 to 1, null when unmeasured) and `uncertain` say how sure the classifier was; `language` is the post's ISO 639-1 code (`en`, `es`) or null when unknown. Status is the user's triage: `open` (untouched), `ignored` (hidden from the feed and every channel), `done` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until `snoozedUntil`. Muted people are hidden unless `includeMuted=true`.
 
 Searching: default to `relevant=true` unless the user asks about noise, use `since` for "this week", `platform` for "on Hacker News", `sentiment`/`intent` for "complaints" or "buying signals", `languages` for "in Spanish", `isReply=false` for "top-level posts only", `minFollowers`/`maxFollowers` for reach, `q` for a substring of the text or the author's name, `alertId` for "what would my Slack rule send", and 20 to 50 as `limit`. Results are newest first and paged with `nextCursor`: pass it back as `cursor` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
 
@@ -65,7 +65,7 @@ Query:
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent (buy_intent, question, complaint, praise, comparison).
+- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
@@ -73,6 +73,7 @@ Query:
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
 - `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
+- `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
@@ -85,8 +86,8 @@ Query:
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
-- `intents` (array of string, nullable): Only mentions carrying any of these intents.
-- `notIntents` (array of string, nullable): Never mentions carrying these intents.
+- `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
+- `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
@@ -135,7 +136,7 @@ Returns: 200, a `Mention` (see Shapes below).
 
 ### GET /v1/mentions/export.csv
 
-**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), status, relevant, delivered, url, text (first 1,000 characters). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
 
 CLI: `mentio mentions:export`
 
@@ -146,7 +147,7 @@ Query:
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent (buy_intent, question, complaint, praise, comparison).
+- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
@@ -154,6 +155,7 @@ Query:
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
 - `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
+- `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
@@ -166,8 +168,8 @@ Query:
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
-- `intents` (array of string, nullable): Only mentions carrying any of these intents.
-- `notIntents` (array of string, nullable): Never mentions carrying these intents.
+- `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
+- `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
@@ -211,9 +213,11 @@ Returns: 200, CSV text.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
-  - `intents` (array of string, required): Detected intents: buy_intent, question, complaint, praise, comparison.
+  - `intents` (array of string, required): Intent and topic tags: buy_intent, question, complaint, praise, comparison, churn_intent (leaving or replacing the keyword), bug_report, pricing, hiring, event, promotional.
   - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
   - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown or classified before languages were recorded.
+  - `confidence` (number, required, nullable): How sure the classifier is of its relevance verdict, 0 to 1. null when the verdict came without one: the fallback model judged, or the row was scored before confidence was recorded.
+  - `uncertain` (boolean, required): The verdict deserves a human look: confidence under 0.4, or the model that wrote the note disagreed with the verdict. A flag for reviewers; it never hides a mention.
   - `note` (string, required, nullable): One sentence from the classifier explaining the score.
   - `failed` (boolean, required): true when the model could not score this post; it stays in the feed and is not billed.
   - `feedback` (object, required, nullable): A person's correction of the verdict, or null. A relevance verdict sets `relevance` to 100 or 0 and `relevant` with it; a corrected sentiment replaces `sentiment`. Every list, filter, digest and report reads the corrected values.
