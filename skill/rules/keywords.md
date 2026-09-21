@@ -58,11 +58,21 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/filters" -H "Authorization: Bearer 
 
 ### GET /v1/keywords
 
-**List keywords.** Every keyword of the workspace, newest first, with its match stats and poll health.
+**List keywords.** The keywords of the workspace with their match stats and poll health. Without parameters: every keyword, newest first. `q` searches the term and the context; `kind`, `status` and `platform` narrow the list; `sort` orders it; `limit` and `offset` page it. `total` counts the keywords that matched before paging.
 
 CLI: `mentio keywords:list`
 
-Returns: 200, `{ data: Keyword[] }` (see Shapes below).
+Query:
+
+- `q` (string): Text to find in the term or in the keyword's context, case-insensitive.
+- `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+- `status` (array of string): one of `active`, `muted`, `paused`. Only keywords in these states: active, muted, paused. Repeatable, or comma-separated.
+- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only keywords tracked on any of these platforms; a keyword tracked everywhere always passes. Repeatable, or comma-separated.
+- `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
+- `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
+- `offset` (integer, nullable): Skip this many keywords.
+
+Returns: 200, `{ data: Keyword[], total }` (see Shapes below).
 
 ### POST /v1/keywords
 
