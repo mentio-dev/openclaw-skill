@@ -328,6 +328,13 @@ Returns: 204, no body.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
+  - `engagement` (object, required, nullable): Engagement counts as the platform reported them when the post was ingested, usually minutes after it was written; a count the platform does not have is null. Null as a whole for platforms that report none and for posts ingested before September 2026. X carries all six.
+    - `likes` (integer, required, nullable)
+    - `reposts` (integer, required, nullable)
+    - `replies` (integer, required, nullable)
+    - `quotes` (integer, required, nullable)
+    - `views` (integer, required, nullable)
+    - `bookmarks` (integer, required, nullable)
   - `replyTo` (object, required, nullable): The post this one replies to (X, Bluesky); null for top-level posts.
     - `author` (string, required, nullable): Parent post author as the platform names them.
     - `url` (string, required, nullable): Parent post URL.
