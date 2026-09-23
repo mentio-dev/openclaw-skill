@@ -194,6 +194,10 @@ Returns: 200, a `WorkspaceFilters` (see Shapes below).
   - `feedback` (object, required): Your verdicts on this keyword's mentions (PATCH /v1/mentions/{id} relevant).
     - `relevant` (integer, required): Mentions a person marked relevant.
     - `notRelevant` (integer, required): Mentions a person marked not relevant: the noise the classifier let through.
+  - `noise` (object, required): Relevance over the last 14 days of scored matches, so a keyword tightened today stops being flagged within two weeks.
+    - `scored` (integer, required): Matches of the last 14 days (by match time) the classifier has scored.
+    - `relevant` (integer, required): Of those, the ones scored relevant.
+    - `noisy` (boolean, required): At least 20 scored matches in the last 14 days and under 30% of them relevant: tighten the keyword with required terms, excluded terms or context. Every match bills, relevant or not.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin.
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
