@@ -263,6 +263,7 @@ Body (JSON):
   - `url` (string, required): Where the signed POSTs go. https in production.
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
+  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`. Account events to receive at this endpoint (keyword and wallet state changes), on top of whatever rules send here. Omit for none.
 
 Returns: 201, a `Channel` (see Shapes below).
 
@@ -293,6 +294,7 @@ Body (JSON): Omitted fields are untouched.
 - `label` (string)
 - `url` (string): Webhooks only.
 - `headers` (object): Webhooks only; replaces the whole set.
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`. Webhooks only; replaces the whole set of account events the endpoint receives. An empty list unsubscribes it from all of them.
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -453,6 +455,7 @@ Returns: 200, an object:
 - `config` (object, required)
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
+  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes. Empty when it receives none; mention and digest deliveries come through rules as before.
   - `secret` (string): Only on creation and rotation. Signs every request: X-Mentions-Signature-V2 is v2= plus the hex HMAC-SHA256 of "<X-Mentions-Timestamp>.<raw body>" (reject a timestamp older than a few minutes); X-Mentions-Signature, the hex HMAC-SHA256 of the raw body alone, stays for older verifiers.
 
 ### TelegramChannel
