@@ -261,6 +261,7 @@ Returns: 200, an object:
 - `keywords` (object, required): Keywords against the wallet.
   - `active` (integer, required): Unmuted keywords, the ones charged daily.
   - `paused` (integer, required): Keywords the wallet paused for lack of balance; a top-up resumes them.
+  - `capped` (integer, required): Unmuted keywords at their monthly mention cap: still charged daily, not matched until the month turns or the cap is raised.
   - `limit` (integer, required): How many keywords the workspace may run right now: the self-serve ceiling when the balance covers one more keyword-day, else 0.
   - `dayCents` (integer, required): What one more day of the active keywords costs.
 - `mentions` (object, required): Matched mentions, the other thing that bills.

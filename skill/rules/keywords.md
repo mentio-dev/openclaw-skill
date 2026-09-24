@@ -66,7 +66,7 @@ Query:
 
 - `q` (string): Text to find in the term or in the keyword's context, case-insensitive.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
-- `status` (array of string): one of `active`, `muted`, `paused`. Only keywords in these states: active, muted, paused. Repeatable, or comma-separated.
+- `status` (array of string): one of `active`, `muted`, `paused`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
 - `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only keywords tracked on any of these platforms; a keyword tracked everywhere always passes. Repeatable, or comma-separated.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
@@ -76,7 +76,7 @@ Returns: 200, `{ data: Keyword[], total }` (see Shapes below).
 
 ### POST /v1/keywords
 
-**Track a keyword.** Start tracking a word or phrase. Matching, classification and delivery begin on the next poll. A funded workspace tracks up to 500 keywords; each costs $5 per month, deducted daily from the balance. `matching` narrows what the term matches (required and excluded terms, excluded authors, case) before a mention is stored, so a rejected post is never billed; `context` is a sentence the classifier reads for this keyword only.
+**Track a keyword.** Start tracking a word or phrase. Matching, classification and delivery begin on the next poll. A funded workspace tracks up to 500 keywords; each costs $5 per month, deducted daily from the balance. `matching` narrows what the term matches (required and excluded terms, excluded authors, case) before a mention is stored, so a rejected post is never billed; `context` is a sentence the classifier reads for this keyword only. `cap` puts a monthly ceiling on its matched mentions: at the cap it stops matching until the first of the next month (UTC) or until the cap is raised, while its daily keyword charge continues.
 
 CLI: `mentio keywords:create`
 
@@ -92,6 +92,8 @@ Body (JSON):
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+- `cap` (object, nullable): A monthly mention cap; omit or null for none.
+  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 
 Returns: 201, a `Keyword` (see Shapes below).
 
@@ -109,7 +111,7 @@ Returns: 200, a `Keyword` (see Shapes below).
 
 ### PATCH /v1/keywords/{id}
 
-**Update a keyword.** Mute or unmute it, reclassify it (`kind`), change the platforms it is tracked on, its classifier `context`, or its `matching` rules (each rule field optional; an empty list clears one). Rules apply to new mentions from the next poll; stored mentions are untouched.
+**Update a keyword.** Mute or unmute it, reclassify it (`kind`), change the platforms it is tracked on, its classifier `context`, its `matching` rules (each rule field optional; an empty list clears one), or its monthly mention `cap` (null removes it; a cap above this month's count resumes a capped keyword at once). Rules apply to new mentions from the next poll; stored mentions are untouched.
 
 CLI: `mentio keywords:update`
 
@@ -129,6 +131,8 @@ Body (JSON): Omitted fields are untouched.
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+- `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
+  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 
 Returns: 200, a `Keyword` (see Shapes below).
 
@@ -176,8 +180,11 @@ Returns: 200, a `WorkspaceFilters` (see Shapes below).
 - `id` (string, required): Keyword id (kw_...).
 - `term` (string, required)
 - `kind` (string, required): one of `brand`, `competitor`, `topic`
-- `muted` (boolean, required): Not polled or matched. Either paused by you or by the wallet (see pausedForBalance).
+- `muted` (boolean, required): Not polled or matched. Either paused by you or by the wallet (see pausedForBalance). A keyword at its mention cap is not muted (see pausedForCap).
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
+- `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
+- `cap` (object, required, nullable): The monthly mention cap, or null for none.
+  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platforms this keyword is tracked on; null means every platform.
 - `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
@@ -190,6 +197,7 @@ Returns: 200, a `WorkspaceFilters` (see Shapes below).
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
   - `last7d` (integer, required): Matches published in the last 7 days.
+  - `thisMonth` (integer, required): Matches recorded this calendar month (UTC), the count a cap compares against.
   - `lastMentionAt` (string, required, nullable): Newest matched post; null until the first one.
   - `feedback` (object, required): Your verdicts on this keyword's mentions (PATCH /v1/mentions/{id} relevant).
     - `relevant` (integer, required): Mentions a person marked relevant.
