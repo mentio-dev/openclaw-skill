@@ -4,7 +4,7 @@
 
 An alert is a rule times one or more channels. The rule says what to watch (a `filter` over keywords, platforms, minimum relevance, sentiments, intents, `languages` (ISO 639-1), author reach and tags, the hosts a post links to in `linkHosts`, excluded authors, `automated` for or against bots) and when: `instant` fires per mention as it is classified, `daily` sends one digest at `schedule` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; `weekly` sends one a week on `schedule.weekday` (0 Sunday to 6 Saturday) covering the week; `skipEmpty` skips periods with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
 
-Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. `email` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). `webhook` takes a URL and optional headers of the user's own; the response carries `config.secret` ONCE, which signs every delivery (`X-Mentions-Signature`, hex HMAC-SHA256 of the raw body), so show it to the user right away.
+Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. `email` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). `webhook` takes a URL and optional headers of the user's own; the response carries `config.secret` ONCE, which signs every delivery (`X-Mentions-Signature-V2`: `v2=` plus the hex HMAC-SHA256 of `<X-Mentions-Timestamp>.<raw body>`, to be rejected when the timestamp is more than a few minutes old; `X-Mentions-Signature` over the body alone stays for older verifiers), so show it to the user right away.
 
 Webhook payloads are `{ id, event, createdAt, alert: {id, name}, data }`; `event` is the rule's own name (`mention.negative`, `mention.buy_intent`, anything lowercase and dotted) so one endpoint can serve many rules, defaulting to `mention.matched` for instant rules and `digest` for daily ones. `data` is the mention or the digest exactly as the API shapes it. A 2xx within 10 seconds is success; timeouts, 408, 429 and 5xx are retried up to 5 times about 30 seconds apart with the same `id`, so consumers deduplicate on it.
 
@@ -459,7 +459,7 @@ Returns: 200, an object:
 - `config` (object, required)
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
-  - `secret` (string): Only on creation and rotation. Signs every body: X-Mentions-Signature is the hex HMAC-SHA256 of the raw bytes.
+  - `secret` (string): Only on creation and rotation. Signs every request: X-Mentions-Signature-V2 is v2= plus the hex HMAC-SHA256 of "<X-Mentions-Timestamp>.<raw body>" (reject a timestamp older than a few minutes); X-Mentions-Signature, the hex HMAC-SHA256 of the raw body alone, stays for older verifiers.
 
 ### TelegramChannel
 
