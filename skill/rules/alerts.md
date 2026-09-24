@@ -82,7 +82,7 @@ Body (JSON):
 - `filter` (object)
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
-  - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
@@ -133,7 +133,7 @@ Body (JSON): Omitted fields are untouched.
 - `filter` (object): Replaces the whole filter.
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
-  - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
@@ -375,7 +375,7 @@ Returns: 200, an object:
 - `filter` (object, required)
   - `keywordIds` (array of string): Only these keywords.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from these platforms.
-  - `minRelevance` (integer): Only mentions scored at least this; unclassified ones never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
