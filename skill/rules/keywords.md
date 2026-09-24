@@ -206,6 +206,12 @@ Returns: 200, a `WorkspaceFilters` (see Shapes below).
     - `scored` (integer, required): Matches of the last 14 days (by match time) the classifier has scored.
     - `relevant` (integer, required): Of those, the ones scored relevant.
     - `noisy` (boolean, required): At least 20 scored matches in the last 14 days and under 30% of them relevant: tighten the keyword with required terms, excluded terms or context. Every match bills, relevant or not.
+  - `cost` (object, required): What this keyword has cost this calendar month (UTC) at list price: exactly its row in GET /v1/usage/breakdown?month=<this month> (same tables, same rounding). The wallet's ledger, which settles once a day, is what can differ from these list-price numbers, and only by cumulative rounding.
+    - `keywordDays` (integer, required): Days this month the keyword was charged for: unmuted at the daily tick. A keyword created today reads 0 until tomorrow's tick.
+    - `keywordCents` (integer, required): Those days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
+    - `billableMentions` (integer, required): Matches billed this month, counted when they were scored (the clock the ledger settles by), so it can trail thisMonth by the matches still being scored and never counts one that failed to score.
+    - `mentionCents` (integer, required): Those matches at $0.008 each, rounded once on the total.
+    - `totalCents` (integer, required): keywordCents plus mentionCents: what this keyword has cost this month, in USD cents.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin.
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.

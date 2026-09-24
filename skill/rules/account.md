@@ -10,6 +10,8 @@ API keys belong to one workspace and are `read` (GET only) or `write`; `expiresA
 
 `GET /v1/usage` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it. The wallet itself is under `/v1/billing`: `GET /v1/billing/wallet` (the full picture, the top-up bounds and the auto-recharge settings), `GET /v1/billing/ledger` (every movement of the balance, newest first, cursor paged), `POST /v1/billing/top-ups` with `amountCents` ($20 to $5,000, in cents) which returns a hosted checkout URL to hand to the user (nothing is charged by the call; the balance is credited when they pay, and paused tracking resumes at once), and `GET /v1/billing/invoices` plus `GET /v1/billing/invoices/{id}/url` for the receipts. Auto recharge (a charge on the saved card with nobody present) is changed by a signed-in owner only, on the dashboard's billing page or through an OAuth sign-in, never with a key; the wallet reports its settings. Never create a checkout unless the user asked to add funds, and show them the URL once.
 
+`GET /v1/usage/breakdown` is where the money went: what the workspace consumed and was charged over a window, in USD cents at list price, grouped by ONE dimension per call (`by=keyword`, the default; `platform`; `day`), with the window's `totals` on every call (keyword-days, matched and billed mentions, the list-price total, and `ledgerDebitCents`, what the wallet has debited so far: mentions settle the morning after their day, so a window ending today lags the list price by the unsettled ones; a closed month differs only by rounding). `range` (7d, 30d, 90d; default 30d) reads a trailing window ending today; `month=YYYY-MM` reads one calendar month, the shape a bill or a per-customer margin is reconciled against (a future month is a 400). Answer "what did keyword X cost" from the keyword rows: `keywordDays` (days charged), `keywordCents`, `billableMentions`, `mentionCents`, `totalCents`, and `keyword.removed` for a keyword deleted since. Rows are paged (`limit` up to 500, `offset`, `total`), and the read is capped at 30 a minute per workspace across its keys and tokens (a 429 with Retry-After past it, so do not poll it). For the running month every keyword already carries the same numbers as `stats.cost` on `GET /v1/keywords`, so a per-keyword cost today needs no second call.
+
 The team: `GET /v1/members` lists everyone with their role and user id (what `assigneeId` and `ownerId` take, so resolve a name here before assigning). Changing the team needs a signed-in owner or admin behind the credential (an OAuth token from an MCP sign-in, or the dashboard session); an API key answers `403`, since a key has no person behind it. `POST /v1/members/invitations` emails an invitation (admin or member; 48 hours; the same address twice returns the open invitation), `GET` lists the open ones, `DELETE /v1/members/invitations/{id}` revokes one, `DELETE /v1/members/{id}` removes a member (only an owner removes an owner, never the last one). Confirm before removing anyone. `GET /v1/health` needs no key and says whether the API is up.
 
 Base URL `https://api.mentio.dev`, `Authorization: Bearer $MENTIO_API_KEY` on every request, JSON in and out. The `mentio` CLI command for each endpoint is listed for when it is installed (rules/cli.md).
@@ -32,6 +34,9 @@ curl -sS -X DELETE "https://api.mentio.dev/v1/api-keys/key_..." -H "Authorizatio
 
 # How much is left, and is tracking running?
 curl -sS "https://api.mentio.dev/v1/usage" -H "Authorization: Bearer $MENTIO_API_KEY"
+
+# What did each keyword cost in September?
+curl -sS "https://api.mentio.dev/v1/usage/breakdown?by=keyword&month=2026-09&limit=500" -H "Authorization: Bearer $MENTIO_API_KEY"
 
 # The wallet in full, the last 50 movements, a $50 top-up link for the user
 curl -sS "https://api.mentio.dev/v1/billing/wallet" -H "Authorization: Bearer $MENTIO_API_KEY"
@@ -61,6 +66,7 @@ curl -sS "https://api.mentio.dev/v1/health"
 | `DELETE` | `/v1/api-keys/{id}` | `mentio api-keys:revoke` | Revoke an API key |
 | `GET` | `/v1/whoami` | `mentio auth:whoami` | Introspect the credential |
 | `GET` | `/v1/usage` | `mentio usage:get` | Get usage and balance |
+| `GET` | `/v1/usage/breakdown` | `mentio usage:breakdown` | Get the usage breakdown |
 | `GET` | `/v1/billing/invoices` | `mentio billing:invoices` | List receipts |
 | `GET` | `/v1/billing/invoices/{id}/url` | `mentio billing:invoice-url` | Get a receipt link |
 | `GET` | `/v1/billing/ledger` | `mentio billing:ledger` | List ledger entries |
@@ -160,6 +166,22 @@ Returns: 200, a `Whoami` (see Shapes below).
 CLI: `mentio usage:get`
 
 Returns: 200, a `UsageSummary` (see Shapes below).
+
+### GET /v1/usage/breakdown
+
+**Get the usage breakdown.** What the workspace consumed and was charged over a window, grouped by one dimension per call (`by`: day, platform or keyword), in USD cents at list price, with the window's totals on every call. `range` reads a trailing window of UTC days ending today (default 30d); `month` reads one calendar month (YYYY-MM), the shape a bill or a per-customer margin is reconciled against. Keyword-days come from the daily tick and mention charges from the matches that billed, so a deleted keyword keeps its charges in the keyword rows (`keyword.removed`) while its mention counts read 0; the same numbers ride on each keyword as `stats.cost` for the running month. `totals.ledgerDebitCents` is what the wallet has debited so far for the window's days: mentions settle the morning after their day, so a window ending today lags `totals.totalCents` by the unsettled ones, and a closed month differs from it only by cumulative rounding. Rows are paged (`limit`, `offset`, `total`); a workspace may read this at most 30 times a minute through its keys and tokens together.
+
+CLI: `mentio usage:breakdown`
+
+Query:
+
+- `by` (string): one of `day`, `platform`, `keyword`. The dimension to group by: day (one row per UTC day of the window), platform, or keyword (default: the row a margin is computed from).
+- `range` (string): one of `7d`, `30d`, `90d`. Trailing window of UTC days ending today: 7d, 30d, 90d (default 30d). Ignored when `month` is given.
+- `month` (string): A calendar month (YYYY-MM, UTC) instead of a trailing window: from its first day to its last, or to today for the running month. A future month is a 400.
+- `limit` (integer): Rows per page, 1 to 500 (default 100). Only by=keyword can outgrow a page; a window has at most 90 days and a dozen platforms.
+- `offset` (integer, nullable): Skip this many rows.
+
+Returns: 200, a `UsageBreakdown` (see Shapes below).
 
 ### GET /v1/billing/invoices
 
@@ -343,6 +365,40 @@ Returns: 200, an object:
 - `stopped` (boolean, required): The wallet paused tracking; a top-up that covers a day of every keyword resumes it.
 - `lowBalance` (boolean, required): Running, and the effective balance is at or under 20 percent of the last credit.
 - `lastTopUpAt` (string, required, nullable): Newest paid top-up; null before the first.
+
+### UsageBreakdown
+
+- `window` (object, required): The window the report covers, in UTC days.
+  - `from` (string, required): First day, YYYY-MM-DD, inclusive, UTC.
+  - `to` (string, required): Last day, inclusive: today for a trailing window or the running month.
+  - `days` (integer, required): Length of the window in days.
+  - `keywordDaysFrom` (string, required, nullable): The first day of the window with a recorded keyword count, or null when there is none. Earlier days carry keywordDays: null.
+- `by` (string, required): one of `day`, `platform`, `keyword`. The dimension the rows are grouped by.
+- `currency` (string, required): one of `USD`. Every amount is in USD cents.
+- `totals` (object, required): The whole window as one line, the same for every dimension.
+  - `keywordDays` (integer, required): Keyword-days metered in the window.
+  - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
+  - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
+  - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
+  - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
+  - `totalCents` (integer, required): keywordCents plus mentionCents.
+  - `unclassifiedMentions` (integer, required): Matched but never scored (classification failed): never charged.
+  - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
+  - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same.
+- `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
+  - `key` (string, required): The group: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword.
+  - `label` (string, required): Readable name: the keyword term, otherwise the key.
+  - `keyword` (object, required, nullable): by=keyword only; null otherwise.
+    - `id` (string, required): Keyword id (kw_...); a deleted keyword keeps its id here.
+    - `term` (string, required): The term as it was last metered, or as the keyword reads now.
+    - `removed` (boolean, required): The keyword has since been deleted. Its charges stay on the record; its mentions went with it, so its mention counts read 0.
+  - `keywordDays` (integer, required, nullable): Keyword-days metered in this group: the days the daily tick charged for. Null for by=platform (a keyword-day belongs to no platform) and for a day before the first recorded tick (unknown, not zero); a keyword row counts only the days on record, so before window.keywordDaysFrom it is a floor, not a zero.
+  - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
+  - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
+  - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
+  - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
+  - `totalCents` (integer, required): keywordCents plus mentionCents.
+- `total` (integer, required): Rows in the dimension before `limit` and `offset`.
 
 ### LedgerList
 
