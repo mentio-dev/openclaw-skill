@@ -66,7 +66,7 @@ curl -sS "https://api.mentio.dev/v1/channels/dest_.../deliveries?limit=20" -H "A
 
 CLI: `mentio alerts:list`
 
-Returns: 200, `{ data: Alert[] }` (see Shapes below).
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/alerts
 
@@ -241,9 +241,7 @@ Returns: 200, a `Alert` (see Shapes below).
 
 CLI: `mentio channels:list`
 
-Returns: 200, an object:
-
-- `data` (array of one of SlackChannel | EmailChannel | WebhookChannel | TelegramChannel, required)
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/channels
 
@@ -324,22 +322,7 @@ Query:
 
 - `limit` (integer)
 
-Returns: 200, an object:
-
-- `data` (array of object, required)
-  - `id` (string, required): Delivery id (dlv_...), also the webhook payload id.
-  - `kind` (string, required): one of `mention`, `digest`
-  - `status` (string, required): one of `pending`, `delivered`, `failed`
-  - `attempts` (integer, required)
-  - `error` (string, required, nullable): The last failure, when there was one.
-  - `sentAt` (string, required, nullable): ISO 8601 timestamp, UTC.
-  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-  - `alert` (object, required): The alert that produced it; name only, since alerts can be deleted.
-    - `name` (string, required, nullable)
-  - `mention` (object, required, nullable): For mention deliveries: the post, text cut to 160 characters.
-    - `id` (string, required)
-    - `url` (string, required)
-    - `text` (string, required)
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/channels/{id}/rotate-secret
 
@@ -371,6 +354,17 @@ Returns: 200, an object:
   - `error` (string, required, nullable)
 
 ## Shapes
+
+### InvoiceList
+
+- `data` (array of object, required): Paid orders, newest first; empty before the first top-up.
+  - `id` (string, required): The Polar order id; what GET /v1/billing/invoices/{id}/url takes.
+  - `createdAt` (string, required): When the order was placed (ISO 8601).
+  - `status` (string, required): The order status as Polar reports it (paid, refunded, ...).
+  - `paid` (boolean, required): Whether the order was paid.
+  - `totalAmount` (integer, required): What was charged, in minor units of `currency`, tax included.
+  - `currency` (string, required): ISO 4217 currency of the order (usd).
+  - `billingReason` (string, required, nullable): Why the order exists, as Polar reports it (purchase, subscription_cycle, ...); null when it does not say.
 
 ### Alert
 

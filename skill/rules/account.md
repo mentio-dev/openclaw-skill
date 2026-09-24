@@ -8,7 +8,7 @@ The company profile is what the classifier knows about the user: `name`, `descri
 
 API keys belong to one workspace and are `read` (GET only) or `write`; `expiresAt` makes one stop working at an instant, the right shape for a contractor or a one-off script. The key is returned once at creation and only its hash is stored; list shows prefixes and expiries. Creating or revoking keys needs a write key. Do not create keys unless asked, and hand a new key to the user once without storing it anywhere.
 
-`GET /v1/usage` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it, and point at https://app.mentio.dev/billing to add funds.
+`GET /v1/usage` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it. The wallet itself is under `/v1/billing`: `GET /v1/billing/wallet` (the full picture, the top-up bounds and the auto-recharge settings), `GET /v1/billing/ledger` (every movement of the balance, newest first, cursor paged), `POST /v1/billing/top-ups` with `amountCents` ($20 to $5,000, in cents) which returns a hosted checkout URL to hand to the user (nothing is charged by the call; the balance is credited when they pay, and paused tracking resumes at once), and `GET /v1/billing/invoices` plus `GET /v1/billing/invoices/{id}/url` for the receipts. Auto recharge (a charge on the saved card with nobody present) is changed by a signed-in owner only, on the dashboard's billing page or through an OAuth sign-in, never with a key; the wallet reports its settings. Never create a checkout unless the user asked to add funds, and show them the URL once.
 
 The team: `GET /v1/members` lists everyone with their role and user id (what `assigneeId` and `ownerId` take, so resolve a name here before assigning). Changing the team needs a signed-in owner or admin behind the credential (an OAuth token from an MCP sign-in, or the dashboard session); an API key answers `403`, since a key has no person behind it. `POST /v1/members/invitations` emails an invitation (admin or member; 48 hours; the same address twice returns the open invitation), `GET` lists the open ones, `DELETE /v1/members/invitations/{id}` revokes one, `DELETE /v1/members/{id}` removes a member (only an owner removes an owner, never the last one). Confirm before removing anyone. `GET /v1/health` needs no key and says whether the API is up.
 
@@ -33,6 +33,14 @@ curl -sS -X DELETE "https://api.mentio.dev/v1/api-keys/key_..." -H "Authorizatio
 # How much is left, and is tracking running?
 curl -sS "https://api.mentio.dev/v1/usage" -H "Authorization: Bearer $MENTIO_API_KEY"
 
+# The wallet in full, the last 50 movements, a $50 top-up link for the user
+curl -sS "https://api.mentio.dev/v1/billing/wallet" -H "Authorization: Bearer $MENTIO_API_KEY"
+curl -sS "https://api.mentio.dev/v1/billing/ledger?limit=50" -H "Authorization: Bearer $MENTIO_API_KEY"
+curl -sS -X POST "https://api.mentio.dev/v1/billing/top-ups" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"amountCents": 5000}'
+
+# The receipts
+curl -sS "https://api.mentio.dev/v1/billing/invoices" -H "Authorization: Bearer $MENTIO_API_KEY"
+
 # The team: who is in, invite someone, take an invitation back
 curl -sS "https://api.mentio.dev/v1/members" -H "Authorization: Bearer $MENTIO_API_KEY"
 curl -sS -X POST "https://api.mentio.dev/v1/members/invitations" -H "Authorization: Bearer $MENTIO_API_KEY" -H "Content-Type: application/json" -d '{"email": "ana@example.com", "role": "member"}'
@@ -53,6 +61,11 @@ curl -sS "https://api.mentio.dev/v1/health"
 | `DELETE` | `/v1/api-keys/{id}` | `mentio api-keys:revoke` | Revoke an API key |
 | `GET` | `/v1/whoami` | `mentio auth:whoami` | Introspect the credential |
 | `GET` | `/v1/usage` | `mentio usage:get` | Get usage and balance |
+| `GET` | `/v1/billing/invoices` | `mentio billing:invoices` | List receipts |
+| `GET` | `/v1/billing/invoices/{id}/url` | `mentio billing:invoice-url` | Get a receipt link |
+| `GET` | `/v1/billing/ledger` | `mentio billing:ledger` | List ledger entries |
+| `POST` | `/v1/billing/top-ups` | `mentio billing:top-up` | Create a top-up checkout |
+| `GET` | `/v1/billing/wallet` | `mentio billing:wallet` | Get the wallet |
 | `GET` | `/v1/members` | `mentio members:list` | List members |
 | `DELETE` | `/v1/members/{id}` | `mentio members:remove` | Remove a member |
 | `GET` | `/v1/members/invitations` | `mentio members:invitations` | List pending invitations |
@@ -95,16 +108,7 @@ Returns: 200, a `Company` (see Shapes below).
 
 CLI: `mentio api-keys:list`
 
-Returns: 200, an object:
-
-- `data` (array of object, required)
-  - `id` (string, required): Key id (key_...).
-  - `name` (string, required)
-  - `prefix` (string, required): The first characters of the key, to tell keys apart.
-  - `scope` (string, required): one of `read`, `write`. read: GET only. write: everything.
-  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-  - `lastUsedAt` (string, required, nullable): ISO 8601 timestamp, UTC.
-  - `expiresAt` (string, required, nullable): When the key stops working; null for a key that never expires. An expired key stays listed until revoked.
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/api-keys
 
@@ -157,13 +161,71 @@ CLI: `mentio usage:get`
 
 Returns: 200, a `UsageSummary` (see Shapes below).
 
+### GET /v1/billing/invoices
+
+**List receipts.** The orders behind the top-ups, newest first, as the merchant of record (Polar) holds them: this workspace's share of the billing customer's newest 100 orders. Empty before the first top-up.
+
+CLI: `mentio billing:invoices`
+
+Returns: 200, a `InvoiceList` (see Shapes below).
+
+### GET /v1/billing/invoices/{id}/url
+
+**Get a receipt link.** A short-lived link to the receipt PDF of one paid order (an id from the receipts list).
+
+CLI: `mentio billing:invoice-url`
+
+Path:
+
+- `id` (string, required): The order id from GET /v1/billing/invoices.
+
+Returns: 200, an object:
+
+- `url` (string, required): A short-lived link to the receipt PDF.
+
+### GET /v1/billing/ledger
+
+**List ledger entries.** Every movement of the balance, newest first: the welcome credit, top-ups, refunds, the daily keyword-day and mention debits, adjustments. A debit row carries the UTC day it settled and the cumulative units behind it. Cursor paged.
+
+CLI: `mentio billing:ledger`
+
+Query:
+
+- `cursor` (string): Opaque cursor from a previous page (`nextCursor`).
+- `limit` (integer): Page size, 1 to 100 (default 25).
+
+Returns: 200, a `LedgerList` (see Shapes below).
+
+### POST /v1/billing/top-ups
+
+**Create a top-up checkout.** Returns a hosted checkout URL with `amountCents` prefilled (editable there, $20 to $5,000). The balance is credited when the payment lands, within a minute, and tracking the wallet had paused resumes at once. Nothing is charged by this call itself. `successUrl` must be on an origin this deployment trusts; omit it for the dashboard's billing page.
+
+CLI: `mentio billing:top-up`
+
+Body (JSON):
+
+- `amountCents` (integer, required): Amount to add, in USD cents (2000 to 500000). Prefilled at checkout, editable there.
+- `successUrl` (string): Where the customer lands after paying: a page on an origin this deployment trusts (the dashboard). Omit it and the dashboard's billing page is used.
+
+Returns: 200, an object:
+
+- `url` (string, required): Hosted Polar checkout URL.
+
+### GET /v1/billing/wallet
+
+**Get the wallet.** The prepaid balance in full: ledger, pending mention charges and the effective balance the stop rule reads, the daily burn and the days it buys, how many keywords run and how many the wallet paused, what a day costs and what a resume needs, the welcome credit, the newest top-up, the top-up bounds and the auto-recharge settings. `GET /v1/usage` is the short form.
+
+CLI: `mentio billing:wallet`
+
+Returns: 200, a `Wallet` (see Shapes below).
+
 ### GET /v1/members
 
 **List members.** Everyone in the workspace, owners first. `userId` is what a mention's assigneeId and a person's ownerId take.
 
 CLI: `mentio members:list`
 
-Returns: 200, `{ data: Member[] }` (see Shapes below).
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### DELETE /v1/members/{id}
 
@@ -183,7 +245,7 @@ Returns: 204, no body.
 
 CLI: `mentio members:invitations`
 
-Returns: 200, `{ data: Invitation[] }` (see Shapes below).
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/members/invitations
 
@@ -233,6 +295,17 @@ Returns: 200, an object:
 - `guidelines` (string, required, nullable): Free-text rules for the classifier: what counts as relevant for you and what never does ("posts about our API, never job listings"). The second biggest lever after the description.
 - `context` (string, required): The text the classifier reads. Composed from the fields above unless you override it.
 
+### InvoiceList
+
+- `data` (array of object, required): Paid orders, newest first; empty before the first top-up.
+  - `id` (string, required): The Polar order id; what GET /v1/billing/invoices/{id}/url takes.
+  - `createdAt` (string, required): When the order was placed (ISO 8601).
+  - `status` (string, required): The order status as Polar reports it (paid, refunded, ...).
+  - `paid` (boolean, required): Whether the order was paid.
+  - `totalAmount` (integer, required): What was charged, in minor units of `currency`, tax included.
+  - `currency` (string, required): ISO 4217 currency of the order (usd).
+  - `billingReason` (string, required, nullable): Why the order exists, as Polar reports it (purchase, subscription_cycle, ...); null when it does not say.
+
 ### Whoami
 
 - `workspace` (object, required): The workspace this credential acts on.
@@ -270,6 +343,49 @@ Returns: 200, an object:
 - `stopped` (boolean, required): The wallet paused tracking; a top-up that covers a day of every keyword resumes it.
 - `lowBalance` (boolean, required): Running, and the effective balance is at or under 20 percent of the last credit.
 - `lastTopUpAt` (string, required, nullable): Newest paid top-up; null before the first.
+
+### LedgerList
+
+- `data` (array of object, required): Ledger entries, newest first.
+  - `id` (string, required): Ledger entry id (led_...).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions or adjustment.
+  - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
+  - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
+  - `note` (string, required, nullable): Free text on credits and adjustments.
+  - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
+  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
+- `nextCursor` (string, required, nullable): Pass it back as `cursor` for the next page; null on the last.
+
+### Wallet
+
+- `balanceCents` (integer, required): Ledger balance: every credit minus every settled debit.
+- `pendingCents` (integer, required): Mentions matched since the last daily settlement, priced but not yet debited.
+- `effectiveBalanceCents` (integer, required): balanceCents minus pendingCents: what the stop sweep and the keyword gate look at.
+- `burnPerDayCents` (integer, required): Average daily debit over the last 7 days (or since the workspace was created).
+- `daysLeft` (integer, required, nullable): effectiveBalanceCents divided by burnPerDayCents; null when nothing is burning.
+- `stopped` (boolean, required): The wallet paused tracking; a top-up that covers a day of every keyword resumes it.
+- `lowBalance` (boolean, required): Running, and the effective balance is at or under 20 percent of the last credit: the same rule as the low-balance email.
+- `activeKeywords` (integer, required): Unmuted keywords.
+- `autoMutedKeywords` (integer, required): Keywords the wallet paused; a top-up resumes them.
+- `nextDayCents` (integer, required): What one more day of the running keywords costs; tracking stops when the effective balance drops under it.
+- `resumeCostCents` (integer, required): What one day of every keyword (running and paused) costs; a stopped workspace resumes once the effective balance covers it.
+- `signupCredit` (object, required, nullable): The welcome credit this workspace received, or null (a second workspace of the same user gets none).
+  - `amountCents` (integer, required): Integer USD cents.
+  - `grantedAt` (string, required): ISO 8601 timestamp, UTC.
+- `lastTopUpAt` (string, required, nullable): Newest paid top-up; null before the first.
+- `billingConfigured` (boolean, required): False when this deployment has no Polar credentials: the top-up button is hidden.
+- `minTopUpCents` (integer, required): Smallest top-up the checkout accepts.
+- `maxTopUpCents` (integer, required): Largest single top-up.
+- `defaultTopUpCents` (integer, required): Amount prefilled in the checkout.
+- `currency` (string, required): one of `USD`. Every amount on this page is in USD cents.
+- `autoRecharge` (object, required)
+  - `available` (boolean, required): This deployment can charge saved cards; false hides the setting.
+  - `enabled` (boolean, required): Charge the saved card automatically when the balance runs low.
+  - `thresholdCents` (integer, required): Charge when the effective balance drops under this.
+  - `amountCents` (integer, required): How much to add per automatic charge (same bounds as a manual top-up).
+  - `lastRunAt` (string, required, nullable): Newest successful automatic charge.
+  - `lastError` (string, required, nullable): Why the last automatic charge failed; null after a success.
 
 ### Member
 

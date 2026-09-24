@@ -131,7 +131,7 @@ Path:
 
 - `id` (string, required): Person id (aut_...).
 
-Returns: 200, `{ data: PersonActivity[] }` (see Shapes below).
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/people/{id}/activities
 
@@ -378,6 +378,17 @@ Returns: 204, no body.
     - `email` (string, required, nullable)
   - `stage` (string, required): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
   - `lastContactedAt` (string, required, nullable): The newest logged activity; null when nobody logged a contact.
+
+### InvoiceList
+
+- `data` (array of object, required): Paid orders, newest first; empty before the first top-up.
+  - `id` (string, required): The Polar order id; what GET /v1/billing/invoices/{id}/url takes.
+  - `createdAt` (string, required): When the order was placed (ISO 8601).
+  - `status` (string, required): The order status as Polar reports it (paid, refunded, ...).
+  - `paid` (boolean, required): Whether the order was paid.
+  - `totalAmount` (integer, required): What was charged, in minor units of `currency`, tax included.
+  - `currency` (string, required): ISO 4217 currency of the order (usd).
+  - `billingReason` (string, required, nullable): Why the order exists, as Polar reports it (purchase, subscription_cycle, ...); null when it does not say.
 
 ### PersonActivity
 

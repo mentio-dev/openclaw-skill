@@ -199,14 +199,14 @@ curl -sS "${API}/v1/analytics/share-of-voice?range=90d&platforms=reddit,hackerne
   {
     slug: 'account',
     title: 'Company profile, credentials, usage, team and health',
-    nouns: ['company', 'api-keys', 'whoami', 'usage', 'members', 'health'],
+    nouns: ['company', 'api-keys', 'whoami', 'usage', 'billing', 'members', 'health'],
     intro: `Start a session with \`GET /v1/whoami\`: the workspace the credential acts on (name it back to the user), whether it may write (\`auth.scope\`), and for a key its id and expiry. A \`read\` credential answers \`403 read_only_key\` on every write, so knowing early saves a failed call.
 
 The company profile is what the classifier knows about the user: \`name\`, \`description\`, \`useCases\`, \`competitors\` (by name), \`guidelines\` (free-text rules: what counts as relevant, what never does), their \`website\` and own \`accounts\` (so their own posts are recognized), and the \`context\` composed from them, which is what the model actually reads. It is the biggest lever on relevance: when the user complains about noise or missed mentions, read the profile, then improve the description, the use cases and the guidelines in their words (what the company does, for whom, what it is not). Setting \`context\` directly overrides the composition until the next profile edit. New mentions are scored with the new context at once; old ones are not rescored. A per-keyword \`context\` (rules/keywords.md) refines it for one term.
 
 API keys belong to one workspace and are \`read\` (GET only) or \`write\`; \`expiresAt\` makes one stop working at an instant, the right shape for a contractor or a one-off script. The key is returned once at creation and only its hash is stored; list shows prefixes and expiries. Creating or revoking keys needs a write key. Do not create keys unless asked, and hand a new key to the user once without storing it anywhere.
 
-\`GET /v1/usage\` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it, and point at https://app.mentio.dev/billing to add funds.
+\`GET /v1/usage\` is the money question in one read: the prepaid balance (ledger, pending mention charges, the effective balance the stop rule reads), the daily burn and the days it buys, the keywords running and paused, the matches recorded today and over 30 days, and whether tracking is stopped. Answer "how much is left" and "why did tracking stop" from it. The wallet itself is under \`/v1/billing\`: \`GET /v1/billing/wallet\` (the full picture, the top-up bounds and the auto-recharge settings), \`GET /v1/billing/ledger\` (every movement of the balance, newest first, cursor paged), \`POST /v1/billing/top-ups\` with \`amountCents\` ($20 to $5,000, in cents) which returns a hosted checkout URL to hand to the user (nothing is charged by the call; the balance is credited when they pay, and paused tracking resumes at once), and \`GET /v1/billing/invoices\` plus \`GET /v1/billing/invoices/{id}/url\` for the receipts. Auto recharge (a charge on the saved card with nobody present) is changed by a signed-in owner only, on the dashboard's billing page or through an OAuth sign-in, never with a key; the wallet reports its settings. Never create a checkout unless the user asked to add funds, and show them the URL once.
 
 The team: \`GET /v1/members\` lists everyone with their role and user id (what \`assigneeId\` and \`ownerId\` take, so resolve a name here before assigning). Changing the team needs a signed-in owner or admin behind the credential (an OAuth token from an MCP sign-in, or the dashboard session); an API key answers \`403\`, since a key has no person behind it. \`POST /v1/members/invitations\` emails an invitation (admin or member; 48 hours; the same address twice returns the open invitation), \`GET\` lists the open ones, \`DELETE /v1/members/invitations/{id}\` revokes one, \`DELETE /v1/members/{id}\` removes a member (only an owner removes an owner, never the last one). Confirm before removing anyone. \`GET /v1/health\` needs no key and says whether the API is up.`,
     examples: `# Who am I, and may I write?
@@ -224,6 +224,14 @@ curl -sS -X DELETE "${API}/v1/api-keys/key_..." ${AUTH}
 
 # How much is left, and is tracking running?
 curl -sS "${API}/v1/usage" ${AUTH}
+
+# The wallet in full, the last 50 movements, a $50 top-up link for the user
+curl -sS "${API}/v1/billing/wallet" ${AUTH}
+curl -sS "${API}/v1/billing/ledger?limit=50" ${AUTH}
+curl -sS -X POST "${API}/v1/billing/top-ups" ${JSON_HEADERS} -d '{"amountCents": 5000}'
+
+# The receipts
+curl -sS "${API}/v1/billing/invoices" ${AUTH}
 
 # The team: who is in, invite someone, take an invitation back
 curl -sS "${API}/v1/members" ${AUTH}

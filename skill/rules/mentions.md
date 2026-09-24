@@ -113,7 +113,7 @@ Query:
 - `cursor` (string): nextCursor from the previous page; pass the same filters and sort.
 - `limit` (integer): Page size, 1 to 100.
 
-Returns: 200, `{ data: Mention[], nextCursor }` (see Shapes below).
+Returns: 200, a `LedgerList` (see Shapes below).
 
 ### GET /v1/mentions/{id}
 
@@ -202,7 +202,7 @@ Returns: 200, CSV text.
 
 CLI: `mentio views:list`
 
-Returns: 200, `{ data: View[] }` (see Shapes below).
+Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/views
 
@@ -372,6 +372,30 @@ Returns: 204, no body.
   - `snoozedUntil` (string, required, nullable): Until when the mention stays out of the feed; null when not snoozed.
   - `note` (string, required, nullable): Internal note; null when none.
 - `createdAt` (string, required): When the match was recorded; the default feed order.
+
+### LedgerList
+
+- `data` (array of object, required): Ledger entries, newest first.
+  - `id` (string, required): Ledger entry id (led_...).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions or adjustment.
+  - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
+  - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
+  - `note` (string, required, nullable): Free text on credits and adjustments.
+  - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
+  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
+- `nextCursor` (string, required, nullable): Pass it back as `cursor` for the next page; null on the last.
+
+### InvoiceList
+
+- `data` (array of object, required): Paid orders, newest first; empty before the first top-up.
+  - `id` (string, required): The Polar order id; what GET /v1/billing/invoices/{id}/url takes.
+  - `createdAt` (string, required): When the order was placed (ISO 8601).
+  - `status` (string, required): The order status as Polar reports it (paid, refunded, ...).
+  - `paid` (boolean, required): Whether the order was paid.
+  - `totalAmount` (integer, required): What was charged, in minor units of `currency`, tax included.
+  - `currency` (string, required): ISO 4217 currency of the order (usd).
+  - `billingReason` (string, required, nullable): Why the order exists, as Polar reports it (purchase, subscription_cycle, ...); null when it does not say.
 
 ### View
 
