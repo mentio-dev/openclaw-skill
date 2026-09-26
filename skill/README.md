@@ -28,7 +28,7 @@ The key comes from [app.mentio.dev/api-keys](https://app.mentio.dev/api-keys). T
 
 ## Platforms
 
-Bluesky, Hacker News, Reddit, X, GitHub, Stack Overflow, DEV, YouTube, LinkedIn and news.
+Bluesky, Hacker News, Reddit, X, GitHub, Stack Overflow, DEV, YouTube, LinkedIn, TikTok, Instagram and news.
 
 ## Links
 
