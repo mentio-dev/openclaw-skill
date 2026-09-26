@@ -97,6 +97,8 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
 - `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+- `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
+- `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
@@ -181,6 +183,8 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
 - `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+- `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
+- `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
@@ -219,6 +223,8 @@ Body (JSON):
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
+  - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
   - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
@@ -274,6 +280,8 @@ Body (JSON):
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
+  - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
   - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
@@ -319,9 +327,10 @@ Returns: 204, no body.
 - `relevant` (boolean, required): The classifier scored it at or above the delivery threshold (40).
 - `delivered` (boolean, required): Reached at least one of your channels.
 - `priority` (number, required): Attention score, one decimal, computed at read time: relevance halved, author reach on a follower ladder (unknown reach counts 8), the strongest intent (buy intent 20 down to praise 5), minus 2 per day of age floored at 20.
-- `keyword` (object, required): The keyword this post matched.
-  - `id` (string, required)
-  - `term` (string, required)
+- `keyword` (object, required): The keyword this post matched, and the group it is in.
+  - `id` (string, required): Keyword id (kw_...).
+  - `term` (string, required): The tracked term.
+  - `group` (GroupRef, required): The group the keyword belongs to.
 - `post` (object, required)
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin.
   - `url` (string, required): Permalink of the post.
@@ -373,6 +382,15 @@ Returns: 204, no body.
   - `note` (string, required, nullable): Internal note; null when none.
 - `createdAt` (string, required): When the match was recorded; the default feed order.
 
+### GroupRef
+
+The group the keyword belongs to.
+
+- `id` (string, required): Group id (grp_...).
+- `name` (string, required): The group's name.
+- `externalId` (string, required, nullable): Your own id for the group, or null.
+- `isDefault` (boolean, required): The workspace's default group, where a keyword lands when no group is named.
+
 ### LedgerList
 
 - `data` (array of object, required): Ledger entries, newest first.
@@ -407,6 +425,8 @@ Returns: 204, no body.
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
+  - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only posts from any of these platforms.
   - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.

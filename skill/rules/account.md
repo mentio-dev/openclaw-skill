@@ -175,7 +175,7 @@ CLI: `mentio usage:breakdown`
 
 Query:
 
-- `by` (string): one of `day`, `platform`, `keyword`. The dimension to group by: day (one row per UTC day of the window), platform, or keyword (default: the row a margin is computed from).
+- `by` (string): one of `day`, `platform`, `keyword`, `group`. The dimension to group by: day (one row per UTC day of the window), platform, keyword (default: the row a margin is computed from), or group (what a customer or a campaign cost).
 - `range` (string): one of `7d`, `30d`, `90d`. Trailing window of UTC days ending today: 7d, 30d, 90d (default 30d). Ignored when `month` is given.
 - `month` (string): A calendar month (YYYY-MM, UTC) instead of a trailing window: from its first day to its last, or to today for the running month. A future month is a 400.
 - `limit` (integer): Rows per page, 1 to 500 (default 100). Only by=keyword can outgrow a page; a window has at most 90 days and a dozen platforms.
@@ -373,7 +373,7 @@ Returns: 200, an object:
   - `to` (string, required): Last day, inclusive: today for a trailing window or the running month.
   - `days` (integer, required): Length of the window in days.
   - `keywordDaysFrom` (string, required, nullable): The first day of the window with a recorded keyword count, or null when there is none. Earlier days carry keywordDays: null.
-- `by` (string, required): one of `day`, `platform`, `keyword`. The dimension the rows are grouped by.
+- `by` (string, required): one of `day`, `platform`, `keyword`, `group`. The dimension the rows are grouped by.
 - `currency` (string, required): one of `USD`. Every amount is in USD cents.
 - `totals` (object, required): The whole window as one line, the same for every dimension.
   - `keywordDays` (integer, required): Keyword-days metered in the window.
@@ -386,12 +386,16 @@ Returns: 200, an object:
   - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
   - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same.
 - `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
-  - `key` (string, required): The group: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword.
-  - `label` (string, required): Readable name: the keyword term, otherwise the key.
+  - `key` (string, required): The row's key: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword, the group id for by=group.
+  - `label` (string, required): Readable name: the keyword term or the group name, otherwise the key.
   - `keyword` (object, required, nullable): by=keyword only; null otherwise.
     - `id` (string, required): Keyword id (kw_...); a deleted keyword keeps its id here.
     - `term` (string, required): The term as it was last metered, or as the keyword reads now.
     - `removed` (boolean, required): The keyword has since been deleted. Its charges stay on the record; its mentions went with it, so its mention counts read 0.
+  - `group` (object, required, nullable): by=group only; null otherwise.
+    - `id` (string, required): Group id, or "none" for keyword-days metered before groups existed whose keyword is gone.
+    - `name` (string, required): The group's name as it reads now, or "Deleted group" / "No group".
+    - `removed` (boolean, required): The group has since been deleted.
   - `keywordDays` (integer, required, nullable): Keyword-days metered in this group: the days the daily tick charged for. Null for by=platform (a keyword-day belongs to no platform) and for a day before the first recorded tick (unknown, not zero); a keyword row counts only the days on record, so before window.keywordDaysFrom it is a floor, not a zero.
   - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
   - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.

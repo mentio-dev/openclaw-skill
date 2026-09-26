@@ -127,6 +127,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+    - `group` (one of GroupRef | unknown, required)
   - `person` (object, required, nullable): by=person only; null otherwise.
     - `id` (string, required, nullable): Person id (aut_...); null for posts ingested before people were linked.
     - `name` (string, required, nullable): Display name as the platform shows it.
@@ -149,6 +150,15 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `matched` (integer, required): Matches in the group then.
     - `relevant` (integer, required): Relevant matches in the group then.
 
+### GroupRef
+
+The group the keyword belongs to.
+
+- `id` (string, required): Group id (grp_...).
+- `name` (string, required): The group's name.
+- `externalId` (string, required, nullable): Your own id for the group, or null.
+- `isDefault` (boolean, required): The workspace's default group, where a keyword lands when no group is named.
+
 ### AnalyticsSeries
 
 - `window` (object, required): The window the report covers.
@@ -164,6 +174,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+    - `group` (one of GroupRef | unknown, required)
   - `points` (array of object, required): One point per bucket across the window, oldest first, zero-filled.
     - `date` (string, required): The bucket start in `timezone`: the day (YYYY-MM-DD), the Monday of the week, the first of the month, or the hour as YYYY-MM-DDTHH:00.
     - `matched` (integer, required): Every match published in the bucket.
@@ -179,6 +190,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+    - `group` (one of GroupRef | unknown, required)
   - `points` (array of object, required): One point per bucket across the window, oldest first, zero-filled.
     - `date` (string, required): The bucket start in `timezone`: the day (YYYY-MM-DD), the Monday of the week, the first of the month, or the hour as YYYY-MM-DDTHH:00.
     - `matched` (integer, required): Every match published in the bucket.
@@ -200,6 +212,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `id` (string, required): Keyword id (kw_...).
     - `term` (string, required): The tracked term.
     - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+    - `group` (one of GroupRef | unknown, required)
   - `matched` (integer, required): Matches of this keyword in the window.
   - `relevant` (integer, required): Of those, scored at or above the relevance threshold.
   - `negative` (integer, required): Of those, classified negative.

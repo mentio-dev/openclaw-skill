@@ -32,13 +32,15 @@ const JSON_HEADERS = `${AUTH} -H "Content-Type: application/json"`;
 const AREAS: Area[] = [
   {
     slug: 'keywords',
-    title: 'Keywords and workspace filters',
-    nouns: ['keywords', 'filters'],
+    title: 'Keywords, groups and workspace filters',
+    nouns: ['keywords', 'groups', 'filters'],
     intro: `A keyword is a word or phrase Mentio watches, matched case-insensitively as a phrase on every platform or on the ones in \`platforms\`. \`kind\` says what it is to the workspace: \`brand\` (their own names), \`competitor\` (the others), \`topic\` (the space); share of voice and segments read it. Matching, classification and delivery start on the next poll of each platform (real time on Bluesky, minutes to an hour elsewhere, up to 12 hours on YouTube).
 
-Before creating one, list the keywords: the same normalized term twice is a \`409 duplicate_keyword\`. A keyword costs $5 per month, debited daily from the prepaid balance, and every mention it matches $0.008; a \`402\` means the balance cannot cover it (see rules/errors.md). Muting stops polling and matching but keeps the mentions; deleting removes the keyword and its matches (posts also matched by another keyword stay) and takes it out of every alert rule that named it (a rule that named only it is disabled, never widened). Confirm with the user before deleting.
+Before creating one, list the keywords: the same normalized term twice IN THE SAME GROUP is a \`409 duplicate_keyword\`. A keyword costs $5 per month, debited daily from the prepaid balance, and every mention it matches $0.008; a \`402\` means the balance cannot cover it (see rules/errors.md). Muting stops polling and matching but keeps the mentions; deleting removes the keyword and its matches (posts also matched by another keyword stay) and takes it out of every alert rule that named it (a rule that named only it is disabled, never widened). Confirm with the user before deleting.
 
 A common word needs rules, and the rules decide what gets STORED, so a post they reject is never classified, delivered or billed. Per keyword, \`matching\`: \`requiredTerms\` the post must also contain (\`requiredMode\` \`any\` or \`all\`), \`excludedTerms\` that drop it (a \`*\` at an end is a wildcard: \`beta.*\`), \`excludedAuthors\` (links, handles or names, like an alert's mute list), \`caseSensitive\` for an acronym (\`RAG\`). Per workspace, \`GET /v1/filters\` and \`PATCH /v1/filters\`: \`excludedTerms\` and \`excludedAuthors\` for every keyword, \`excludedRepos\` (GitHub owner/name), \`subreddits.only\` and \`subreddits.excluded\`. Lists replace; \`[]\` clears. \`context\` on a keyword is one sentence the classifier reads for that term only ("Arc is our browser, not the geometry word"): it changes scores, not what is stored. When the user complains about a noisy keyword, read its \`stats\` and \`matching\` first, then add rules; when they complain about missed posts, check the platforms and the rules before anything else.
+
+Keywords live in GROUPS (\`GET /v1/groups\`): a group is a customer, a campaign or a product, with a \`name\` (unique per workspace) and an optional \`externalId\` (the user's own id, unique too, found again with \`?externalId=\`). Every keyword belongs to one; a keyword created without \`groupId\` lands in the workspace's default group (\`isDefault\`), which can be renamed and never deleted. The same term may be tracked once PER GROUP, so an integrator running one workspace for several customers gives each its own group and its own copy of a shared term, with its own rules, context, cap and bill. \`PATCH /v1/keywords/{id}\` with \`groupId\` moves a keyword; \`GET /v1/keywords?groupId=\` lists one group's; every keyword and every mention carries \`group\`; \`groupIds\` filters mentions, exports and alert rules; \`GET /v1/usage/breakdown?by=group\` is the bill per group. \`DELETE /v1/groups/{id}\` deletes the group AND every keyword in it, so confirm with the user first. A workspace tracking its own brand needs no group at all: never create one unless the user is separating customers or campaigns.
 
 \`stats\` counts every match ever (\`mentions\`, the billed number), the relevant ones, the last 7 days, and the user's own verdicts (\`feedback.relevant\`, \`feedback.notRelevant\`: a high notRelevant count says the rules or the context need work). \`polling\` reports, per polled platform, the last poll and how many polls in a row found nothing, which is how you tell "nothing is being said" from "not polled yet".`,
     examples: `# Every keyword with its stats and poll health
@@ -63,6 +65,12 @@ curl -sS -X POST "${API}/v1/keywords" ${JSON_HEADERS} \\
 # An acronym, exact case only; drop the company's own posts from one keyword
 curl -sS -X PATCH "${API}/v1/keywords/kw_60d9..." ${JSON_HEADERS} \\
   -d '{"matching": {"caseSensitive": true, "excludedAuthors": ["https://x.com/acmedev"]}}'
+
+# One group per customer, the same term in two of them, and what each cost
+curl -sS -X POST "${API}/v1/groups" ${JSON_HEADERS} -d '{"name": "Bloom Coffee", "externalId": "cust_8231"}'
+curl -sS -X POST "${API}/v1/keywords" ${JSON_HEADERS} \\
+  -d '{"term": "bloom", "kind": "brand", "groupId": "grp_7f3a...", "cap": {"mentions": 500}}'
+curl -sS "${API}/v1/usage/breakdown?by=group&month=2026-09" ${AUTH}
 
 # Workspace-wide noise: job posts, a bot, a repo, a subreddit
 curl -sS "${API}/v1/filters" ${AUTH}
