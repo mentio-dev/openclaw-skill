@@ -47,7 +47,7 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out), language (ISO 639-1; "unknown" for posts without one).
@@ -66,7 +66,7 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `bucket` (string): one of `hour`, `day`, `week`, `month`. Point granularity: hour (windows of at most 14 days), day, week (Monday start) or month. Default: day up to 90 days, week beyond.
@@ -86,7 +86,7 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -104,7 +104,7 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -131,7 +131,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `person` (object, required, nullable): by=person only; null otherwise.
     - `id` (string, required, nullable): Person id (aut_...); null for posts ingested before people were linked.
     - `name` (string, required, nullable): Display name as the platform shows it.
-    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin.
+    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok.
     - `url` (string, required, nullable): Profile URL.
     - `avatarUrl` (string, required, nullable): Avatar image URL, when the platform gave one.
     - `followers` (integer, required, nullable): From the audience profile; null when unknown.
