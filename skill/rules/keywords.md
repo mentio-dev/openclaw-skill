@@ -8,7 +8,7 @@ Before creating one, list the keywords: the same normalized term twice IN THE SA
 
 A common word needs rules, and the rules decide what gets STORED, so a post they reject is never classified, delivered or billed. Per keyword, `matching`: `requiredTerms` the post must also contain (`requiredMode` `any` or `all`), `excludedTerms` that drop it (a `*` at an end is a wildcard: `beta.*`), `excludedAuthors` (links, handles or names, like an alert's mute list), `caseSensitive` for an acronym (`RAG`). Per workspace, `GET /v1/filters` and `PATCH /v1/filters`: `excludedTerms` and `excludedAuthors` for every keyword, `excludedRepos` (GitHub owner/name), `subreddits.only` and `subreddits.excluded`. Lists replace; `[]` clears. `context` on a keyword is one sentence the classifier reads for that term only ("Arc is our browser, not the geometry word"): it changes scores, not what is stored. When the user complains about a noisy keyword, read its `stats` and `matching` first, then add rules; when they complain about missed posts, check the platforms and the rules before anything else.
 
-Keywords live in GROUPS (`GET /v1/groups`): a group is a customer, a campaign or a product, with a `name` (unique per workspace) and an optional `externalId` (the user's own id, unique too, found again with `?externalId=`). Every keyword belongs to one; a keyword created without `groupId` lands in the workspace's default group (`isDefault`), which can be renamed and never deleted. The same term may be tracked once PER GROUP, so an integrator running one workspace for several customers gives each its own group and its own copy of a shared term, with its own rules, context, cap and bill. `PATCH /v1/keywords/{id}` with `groupId` moves a keyword; `GET /v1/keywords?groupId=` lists one group's; every keyword and every mention carries `group`; `groupIds` filters mentions, exports and alert rules; `GET /v1/usage/breakdown?by=group` is the bill per group. `DELETE /v1/groups/{id}` deletes the group AND every keyword in it, so confirm with the user first. A workspace tracking its own brand needs no group at all: never create one unless the user is separating customers or campaigns.
+Keywords live in GROUPS (`GET /v1/groups`): a group is a customer, a campaign or a product, with a `name` (unique per workspace) and an optional `externalId` (the user's own id, unique too, found again with `?externalId=`). Every keyword belongs to one; a keyword created without `groupId` lands in the workspace's default group (`isDefault`), which can be renamed and never deleted. The same term may be tracked once PER GROUP, so an integrator running one workspace for several customers gives each its own group and its own copy of a shared term, with its own rules, context, cap and bill. A group's `context` is that customer's own company description (who they are, what they sell, for whom, what is not them): the classifier reads it in place of the workspace profile for the group's keywords, so set it whenever a group is a different business from the workspace's own; null keeps the workspace profile. `PATCH /v1/keywords/{id}` with `groupId` moves a keyword; `GET /v1/keywords?groupId=` lists one group's; every keyword and every mention carries `group`; `groupIds` filters mentions, exports and alert rules; `GET /v1/usage/breakdown?by=group` is the bill per group. `DELETE /v1/groups/{id}` deletes the group AND every keyword in it, so confirm with the user first. A workspace tracking its own brand needs no group at all: never create one unless the user is separating customers or campaigns.
 
 `stats` counts every match ever (`mentions`, the billed number), the relevant ones, the last 7 days, and the user's own verdicts (`feedback.relevant`, `feedback.notRelevant`: a high notRelevant count says the rules or the context need work). `polling` reports, per polled platform, the last poll and how many polls in a row found nothing, which is how you tell "nothing is being said" from "not polled yet".
 
@@ -99,7 +99,7 @@ Body (JSON):
 - `term` (string, required): The word or phrase to track, matched case-insensitively as a phrase.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platforms to track it on; omit or null for every platform.
-- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
   - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
@@ -139,7 +139,7 @@ Body (JSON): Omitted fields are untouched.
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Replaces the platform list; null means every platform.
-- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
   - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
@@ -178,7 +178,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/groups
 
-**Create a group.** Create a keyword group. `name` is unique per workspace; `externalId` (optional, unique too) is your own id for it, a customer id say, so you can find it again without storing ours. Then pass the group id as `groupId` when creating a keyword.
+**Create a group.** Create a keyword group. `name` is unique per workspace; `externalId` (optional, unique too) is your own id for it, a customer id say, so you can find it again without storing ours; `context` (optional) is the group's own company description, which the classifier reads in place of the whole workspace profile for the group's keywords. Then pass the group id as `groupId` when creating a keyword.
 
 CLI: `mentio groups:create`
 
@@ -186,6 +186,7 @@ Body (JSON):
 
 - `name` (string, required): The group's name: a customer, a campaign, a product. Unique per workspace.
 - `externalId` (string, nullable): Your own id for the group (a customer id, say). Unique per workspace; find the group by it with GET /v1/groups?externalId=.
+- `context` (string, nullable): What the classifier reads as "the company" for this group's keywords, in place of the WHOLE workspace profile, its relevance guidelines and competitor list included (at most 4000 characters): who the business is, what it sells, for whom, what is not it, and any rule that should apply to this group ("ignore job posts"). For a group per customer, the customer's description. Null: the workspace profile, as for every keyword before groups.
 
 Returns: 201, a `Group` (see Shapes below).
 
@@ -203,7 +204,7 @@ Returns: 200, a `Group` (see Shapes below).
 
 ### PATCH /v1/groups/{id}
 
-**Update a group.** Rename a group or change your id for it (`externalId`, null clears). The default group can be renamed like any other.
+**Update a group.** Rename a group, change your id for it (`externalId`, null clears) or its company description (`context`, null clears: the workspace profile applies again; new mentions are judged with it at once, old ones are not rescored). The default group can be renamed like any other but takes no description: it is the workspace itself and reads the company profile.
 
 CLI: `mentio groups:update`
 
@@ -215,6 +216,7 @@ Body (JSON): Omitted fields are untouched.
 
 - `name` (string): The group's name: a customer, a campaign, a product. Unique per workspace.
 - `externalId` (string, nullable): Replaces your id for the group; null clears it.
+- `context` (string, nullable): Replaces the group's company description; null clears it (the workspace profile applies again). New mentions are judged with it at once; old ones are not rescored. Not on the default group (400 default_group_context): that one is the workspace itself and reads the profile.
 
 Returns: 200, a `Group` (see Shapes below).
 
@@ -278,7 +280,7 @@ The group the keyword belongs to.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `group` (GroupRef, required): The group the keyword belongs to.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`. Platforms this keyword is tracked on; null means every platform.
-- `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
   - `requiredTerms` (array of string, required): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
   - `requiredMode` (string, required): one of `any`, `all`. any: at least one required term must appear. all: every one must.
