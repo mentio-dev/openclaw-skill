@@ -80,7 +80,7 @@ Query:
 - `q` (string): Text to find in the term or in the keyword's context, case-insensitive.
 - `groupId` (array of string, nullable): Only keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
-- `status` (array of string): one of `active`, `muted`, `paused`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
+- `status` (array of string): one of `active`, `muted`, `paused`, `noisy`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
 - `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
@@ -294,11 +294,14 @@ The group the keyword belongs to.
 - `id` (string, required): Keyword id (kw_...).
 - `term` (string, required)
 - `kind` (string, required): one of `brand`, `competitor`, `topic`
-- `muted` (boolean, required): Not polled or matched. Either paused by you or by the wallet (see pausedForBalance). A keyword at its mention cap is not muted (see pausedForCap).
+- `muted` (boolean, required): Not polled or matched. Paused by you, by the wallet (see pausedForBalance) or by the noise brake (see pausedForNoise). A keyword at its mention cap is not muted (see pausedForCap).
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
+- `pausedForNoise` (boolean, required): Muted by the noise brake: on a workspace running on its welcome credit, at least 20 of its matches were scored and under 30% were relevant. A change of its required or excluded terms, platforms or context resumes it (when the balance covers another day), and so does unmuting; a top-up does not.
 - `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
 - `cap` (object, required, nullable): The monthly mention cap, or null for none.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `welcome` (boolean, required): Set by Mentio, not you: a workspace on its welcome credit collects at most 200 mentions a keyword a month. The first top-up removes it.
+  - `own` (integer, required, nullable): Your own cap. With welcome true, the cap the keyword gets back at the first top-up (null for none); otherwise the same as mentions. Sending mentions: 200 back while welcome is true changes nothing.
 - `group` (GroupRef, required): The group the keyword belongs to.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
 - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
