@@ -73,7 +73,7 @@ CLI: `mentio mentions:search`
 Query:
 
 - `keywordId` (string): Only matches of this keyword.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from this platform.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from this platform.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
@@ -94,8 +94,8 @@ Query:
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from any of these platforms.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Never posts from these platforms.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Never posts from these platforms.
 - `keywordIds` (array of string, nullable): Only matches of any of these keywords.
 - `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
@@ -108,6 +108,7 @@ Query:
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+- `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -152,14 +153,14 @@ Returns: 200, a `Mention` (see Shapes below).
 
 ### GET /v1/mentions/export.csv
 
-**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
 
 CLI: `mentio mentions:export`
 
 Query:
 
 - `keywordId` (string): Only matches of this keyword.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from this platform.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from this platform.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
@@ -180,8 +181,8 @@ Query:
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from any of these platforms.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Never posts from these platforms.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Never posts from these platforms.
 - `keywordIds` (array of string, nullable): Only matches of any of these keywords.
 - `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
@@ -194,6 +195,7 @@ Query:
 - `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+- `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -225,8 +227,8 @@ Body (JSON):
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from any of these platforms.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Never posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from any of these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
   - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
   - `minRelevance` (integer): Only mentions scored at least this.
@@ -246,6 +248,7 @@ Body (JSON):
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 
 Returns: 201, a `View` (see Shapes below).
 
@@ -282,8 +285,8 @@ Body (JSON):
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from any of these platforms.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Never posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from any of these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
   - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
   - `minRelevance` (integer): Only mentions scored at least this.
@@ -303,6 +306,7 @@ Body (JSON):
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 
 Returns: 200, a `View` (see Shapes below).
 
@@ -332,7 +336,7 @@ Returns: 204, no body.
   - `term` (string, required): The tracked term.
   - `group` (GroupRef, required): The group the keyword belongs to.
 - `post` (object, required)
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram.
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews).
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
@@ -356,6 +360,18 @@ Returns: 204, no body.
   - `avatarUrl` (string, required, nullable): Profile picture; null where the platform has none.
   - `followers` (integer, required, nullable): Follower count as of their newest post; null where the platform has none.
   - `tags` (array of string, required): Your workspace tags on this person.
+- `review` (object, required, nullable): An app store review's facts; null for every other post. Its sentiment comes from the stars (4 and 5 positive, 3 neutral, 1 and 2 negative) and it always counts as relevant, since you chose the app.
+  - `rating` (integer, required): Stars the reviewer gave.
+  - `ratingMax` (integer, required): The top of the scale: 5 on both stores.
+  - `title` (string, required, nullable): The review's headline; null where the store has none (Google Play).
+  - `version` (string, required, nullable): The app version the reviewer ran, when the store says.
+  - `country` (string, required, nullable): The storefront it was read in, a lowercase two-letter code.
+  - `response` (string, required, nullable): The developer's reply as it stood when the review was collected; null for none.
+  - `responseAt` (string, required, nullable): When the developer replied.
+  - `app` (object, required): The app reviewed.
+    - `platform` (string, required): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
+    - `id` (string, required): The store's app id.
+    - `url` (string, required): The app's store listing.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
@@ -427,8 +443,8 @@ The group the keyword belongs to.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only posts from any of these platforms.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Never posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only posts from any of these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Never posts from these platforms.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
   - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
   - `minRelevance` (integer): Only mentions scored at least this.
@@ -448,5 +464,6 @@ The group the keyword belongs to.
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 - `updatedAt` (string, required): ISO 8601 timestamp, UTC.

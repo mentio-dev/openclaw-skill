@@ -81,7 +81,7 @@ Query:
 - `groupId` (array of string, nullable): Only keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `status` (array of string): one of `active`, `muted`, `paused`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
-- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Only keywords tracked on any of these platforms; a keyword tracked everywhere always passes. Repeatable, or comma-separated.
+- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
 - `offset` (integer, nullable): Skip this many keywords.
@@ -98,7 +98,7 @@ Body (JSON):
 
 - `term` (string, required): The word or phrase to track, matched case-insensitively as a phrase.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms to track it on; omit or null for every platform.
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews, which then needs reviewSources.
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
@@ -109,6 +109,12 @@ Body (JSON):
 - `cap` (object, nullable): A monthly mention cap; omit or null for none.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
+- `reviewSources` (array of object): Apps whose reviews this keyword collects, at most 10: every new review of one of them is a mention of the keyword, whatever its text says. Polled once a day per country. A newly added app brings its last 30 days, the newest 100 reviews per country, free and never sent as instant alerts; after that each review bills like any mention.
+  - `url` (string): The app's store link: https://apps.apple.com/us/app/notion/id1232780281 or https://play.google.com/store/apps/details?id=notion.id. Or give platform and id.
+  - `platform` (string): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
+  - `id` (string): The store's app id: the digits after "id" on the App Store, the package name on Google Play.
+  - `countries` (array of string): Storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention.
+  - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
 
 Returns: 201, a `Keyword` (see Shapes below).
 
@@ -138,7 +144,7 @@ Body (JSON): Omitted fields are untouched.
 
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Replaces the platform list; null means every platform.
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
@@ -149,6 +155,12 @@ Body (JSON): Omitted fields are untouched.
 - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
+- `reviewSources` (array of object): Replaces the list of apps whose reviews this keyword collects; [] disconnects them all (their reviews stay). An app or country added here gets the free 30-day look-back; one already listed keeps its place.
+  - `url` (string): The app's store link: https://apps.apple.com/us/app/notion/id1232780281 or https://play.google.com/store/apps/details?id=notion.id. Or give platform and id.
+  - `platform` (string): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
+  - `id` (string): The store's app id: the digits after "id" on the App Store, the package name on Google Play.
+  - `countries` (array of string): Storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention.
+  - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
 
 Returns: 200, a `Keyword` (see Shapes below).
 
@@ -268,6 +280,15 @@ The group the keyword belongs to.
 - `externalId` (string, required, nullable): Your own id for the group, or null.
 - `isDefault` (boolean, required): The workspace's default group, where a keyword lands when no group is named.
 
+### ReviewSource
+
+- `platform` (string, required): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
+- `id` (string, required): The store's app id.
+- `url` (string, required): The app's store listing.
+- `countries` (array of string, required): Storefronts read, lowercase two-letter codes.
+- `language` (string, required, nullable): Google Play's review language; null on the App Store, which answers every language.
+- `connectedAt` (string, required): When this keyword started collecting the app's reviews.
+
 ### Keyword
 
 - `id` (string, required): Keyword id (kw_...).
@@ -279,7 +300,8 @@ The group the keyword belongs to.
 - `cap` (object, required, nullable): The monthly mention cap, or null for none.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `group` (GroupRef, required): The group the keyword belongs to.
-- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms this keyword is tracked on; null means every platform.
+- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+- `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps); empty for none.
 - `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
   - `requiredTerms` (array of string, required): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
@@ -307,7 +329,7 @@ The group the keyword belongs to.
     - `mentionCents` (integer, required): Those matches at $0.008 each, rounded once on the total.
     - `totalCents` (integer, required): keywordCents plus mentionCents: what this keyword has cost this month, in USD cents.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram.
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews).
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
   - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
