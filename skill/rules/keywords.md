@@ -81,7 +81,7 @@ Query:
 - `groupId` (array of string, nullable): Only keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `status` (array of string): one of `active`, `muted`, `paused`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
-- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
+- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
 - `offset` (integer, nullable): Skip this many keywords.
@@ -109,11 +109,11 @@ Body (JSON):
 - `cap` (object, nullable): A monthly mention cap; omit or null for none.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
-- `reviewSources` (array of object): Apps whose reviews this keyword collects, at most 10: every new review of one of them is a mention of the keyword, whatever its text says. Polled once a day per country. A newly added app brings its last 30 days, the newest 100 reviews per country, free and never sent as instant alerts; after that each review bills like any mention.
-  - `url` (string): The app's store link: https://apps.apple.com/us/app/notion/id1232780281 or https://play.google.com/store/apps/details?id=notion.id. Or give platform and id.
-  - `platform` (string): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
-  - `id` (string): The store's app id: the digits after "id" on the App Store, the package name on Google Play.
-  - `countries` (array of string): Storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention.
+- `reviewSources` (array of object): Review pages this keyword collects, at most 10: App Store and Google Play apps, Trustpilot pages, Google Maps places. Every new review of one is a mention of the keyword, whatever its text says. Polled once a day (per country on the app stores). A newly connected page brings its last 30 days, the newest 100 reviews (per country), free and never sent as instant alerts; after that each review bills like any mention.
+  - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
+  - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
+  - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
+  - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
 
 Returns: 201, a `Keyword` (see Shapes below).
@@ -156,10 +156,10 @@ Body (JSON): Omitted fields are untouched.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
 - `reviewSources` (array of object): Replaces the list of apps whose reviews this keyword collects; [] disconnects them all (their reviews stay). An app or country added here gets the free 30-day look-back; one already listed keeps its place.
-  - `url` (string): The app's store link: https://apps.apple.com/us/app/notion/id1232780281 or https://play.google.com/store/apps/details?id=notion.id. Or give platform and id.
-  - `platform` (string): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
-  - `id` (string): The store's app id: the digits after "id" on the App Store, the package name on Google Play.
-  - `countries` (array of string): Storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention.
+  - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
+  - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
+  - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
+  - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
 
 Returns: 200, a `Keyword` (see Shapes below).
@@ -282,12 +282,12 @@ The group the keyword belongs to.
 
 ### ReviewSource
 
-- `platform` (string, required): one of `appstore`, `googleplay`. appstore (Apple App Store) or googleplay (Google Play).
-- `id` (string, required): The store's app id.
-- `url` (string, required): The app's store listing.
-- `countries` (array of string, required): Storefronts read, lowercase two-letter codes.
-- `language` (string, required, nullable): Google Play's review language; null on the App Store, which answers every language.
-- `connectedAt` (string, required): When this keyword started collecting the app's reviews.
+- `platform` (string, required): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
+- `id` (string, required): The id on the platform: app id, package name, Trustpilot domain, Google Place ID or cid.
+- `url` (string, required): The review page: the store listing, the Trustpilot page or the Google Maps place.
+- `countries` (array of string, required): Storefronts read, lowercase two-letter codes; empty on Trustpilot and Google Maps.
+- `language` (string, required, nullable): Google Play's review language; null elsewhere.
+- `connectedAt` (string, required): When this keyword started collecting the page's reviews.
 
 ### Keyword
 
@@ -301,7 +301,7 @@ The group the keyword belongs to.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `group` (GroupRef, required): The group the keyword belongs to.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
-- `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps); empty for none.
+- `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
 - `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
   - `requiredTerms` (array of string, required): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
@@ -329,7 +329,7 @@ The group the keyword belongs to.
     - `mentionCents` (integer, required): Those matches at $0.008 each, rounded once on the total.
     - `totalCents` (integer, required): keywordCents plus mentionCents: what this keyword has cost this month, in USD cents.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews).
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
   - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
