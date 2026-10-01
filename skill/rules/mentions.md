@@ -8,7 +8,7 @@ Intent and topic tags are `buy_intent`, `question`, `complaint`, `praise`, `comp
 
 Searching: default to `relevant=true` unless the user asks about noise, use `since` for "this week", `platform` for "on Hacker News", `sentiment`/`intent` for "complaints" or "buying signals", `languages` for "in Spanish", `isReply=false` for "top-level posts only", `minFollowers`/`maxFollowers` for reach, `q` for a substring of the text or the author's name, `alertId` for "what would my Slack rule send", and 20 to 50 as `limit`. Results are newest first and paged with `nextCursor`: pass it back as `cursor` with the same filters and sort, and only page when the user wants more. Summarize a mention as platform, author (followers), sentiment and intents, one line of text, and the URL.
 
-Triage is one write: `PATCH /v1/mentions/{id}` with only the fields to change; `null` clears a field. The same write takes the user's verdict on the classifier: `relevant: false` when they say a mention is noise (relevance becomes 0 and it leaves the relevant feed, the digests and the counts), `relevant: true` when the classifier missed one, `sentiment` to correct the label; `null` withdraws a verdict and restores the classifier's value. Verdicts never bill or unbill; `classification.feedback` shows them with the values they replaced. A mention still being classified answers `409 classification_pending`: wait a moment. The CSV export takes the same filters as the list and is capped at 10,000 rows.
+Triage is one write: `PATCH /v1/mentions/{id}` with only the fields to change; `null` clears a field. The same write takes the user's verdict on the classifier: `relevant: false` when they say a mention is noise (relevance becomes 0 and it leaves the relevant feed, the digests and the counts), `relevant: true` when the classifier missed one, `sentiment` to correct the label; `null` withdraws a verdict and restores the classifier's value. Verdicts never bill or unbill; `classification.feedback` shows them with the values they replaced. A mention still being classified answers `409 classification_pending`: wait a moment. The CSV export (and its JSON twin, `export.json`, the list's own objects) takes the same filters as the list and is capped at 10,000 rows, 6 exports a minute in either format.
 
 A view is a saved mention filter with a name (`GET /v1/views` lists the workspace's own; `POST /v1/views` saves one). Its `filter` takes the same fields as the list, as JSON, and nothing is materialized. Pass `viewId` to `GET /v1/mentions` or the export to read exactly what it selects, ANDed with anything else on the request; `keywordKinds` (`brand`, `competitor`, `topic`) says "brand mentions" without naming ids. Before creating a view, list them: the same name twice is a `409 duplicate_view`. Confirm before deleting one.
 
@@ -58,6 +58,7 @@ curl -sS "https://api.mentio.dev/v1/mentions?viewId=vw_...&since=2026-09-15T00:0
 | `GET` | `/v1/mentions/{id}` | `mentio mentions:get` | Get a mention |
 | `PATCH` | `/v1/mentions/{id}` | `mentio mentions:update` | Update a mention |
 | `GET` | `/v1/mentions/export.csv` | `mentio mentions:export` | Export mentions as CSV |
+| `GET` | `/v1/mentions/export.json` | `mentio mentions:export-json` | Export mentions as JSON |
 | `GET` | `/v1/views` | `mentio views:list` | List views |
 | `POST` | `/v1/views` | `mentio views:create` | Save a view |
 | `GET` | `/v1/views/{id}` | `mentio views:get` | Get a view |
@@ -66,7 +67,7 @@ curl -sS "https://api.mentio.dev/v1/mentions?viewId=vw_...&since=2026-09-15T00:0
 
 ### GET /v1/mentions
 
-**List mentions.** Mentions matched to your keywords, filtered and paginated. Default order is newest match first; sort=priority ranks the last 30 days of matches by attention score. Page with nextCursor, passing the same filters and sort. A mention is one post matched to one keyword. alertId applies an alert rule's filter on top of the others: the same mentions that rule would send.
+**List mentions.** Mentions matched to your keywords, filtered and paginated. Default order is newest match first; sort=priority ranks the last 30 days of matches by attention score. Page with nextCursor, passing the same filters and sort. A mention is one post matched to one keyword. alertId applies an alert rule's filter on top of the others: the same mentions that rule would send. anyOf adds OR: URL-encoded JSON groups of conditions, at least one of which must hold on top of every other filter.
 
 CLI: `mentio mentions:search`
 
@@ -77,7 +78,7 @@ Query:
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional).
+- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
@@ -109,6 +110,14 @@ Query:
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
+- `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): notRatings=5 hides the five star reviews. Posts that are not reviews still pass.
+- `minLikes` (integer, nullable): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+- `minReposts` (integer, nullable): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+- `minReplies` (integer, nullable): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+- `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+- `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+- `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -153,7 +162,7 @@ Returns: 200, a `Mention` (see Shapes below).
 
 ### GET /v1/mentions/export.csv
 
-**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only), title and image_url (where the platform has them). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
 
 CLI: `mentio mentions:export`
 
@@ -164,7 +173,7 @@ Query:
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
 - `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional).
+- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
@@ -196,11 +205,78 @@ Query:
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
+- `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): notRatings=5 hides the five star reviews. Posts that are not reviews still pass.
+- `minLikes` (integer, nullable): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+- `minReposts` (integer, nullable): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+- `minReplies` (integer, nullable): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+- `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+- `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+- `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
 
 Returns: 200, CSV text.
+
+### GET /v1/mentions/export.json
+
+**Export mentions as JSON.** The same mentions GET /v1/mentions would list for these filters, in one response, newest matched first (the order they entered your feed): every row is the full Mention object the list returns, text included. Capped at 10,000 mentions; `truncated` (and the X-Mentions-Truncated header) says when the cap cut the list. Shares the CSV export's limit: at most 6 exports per minute per workspace, either format; a 429 carries Retry-After.
+
+CLI: `mentio mentions:export-json`
+
+Query:
+
+- `keywordId` (string): Only matches of this keyword.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only posts from this platform.
+- `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
+- `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
+- `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
+- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
+- `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
+- `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
+- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
+- `assigneeId` (string): Only mentions assigned to this workspace member (user id).
+- `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
+- `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
+- `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
+- `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
+- `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
+- `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
+- `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
+- `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
+- `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+- `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Never posts from these platforms.
+- `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+- `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
+- `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
+- `notKeywordIds` (array of string, nullable): Never matches of these keywords.
+- `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+- `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
+- `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
+- `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
+- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
+- `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+- `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+- `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
+- `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): notRatings=5 hides the five star reviews. Posts that are not reviews still pass.
+- `minLikes` (integer, nullable): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+- `minReposts` (integer, nullable): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+- `minReplies` (integer, nullable): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+- `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+- `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+- `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
+- `q` (string): Substring search in the post text or the author's name.
+- `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
+- `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
+
+Returns: 200, `{ data: Mention[], truncated }` (see Shapes below).
 
 ### GET /v1/views
 
@@ -212,7 +288,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/views
 
-**Save a view.** Save a named filter over mentions. The filter takes the same fields as GET /v1/mentions (lists are any-of, `not` lists none-of, every condition ANDed); an empty filter is every mention. Nothing is materialized: the view selects whatever matches when it is read.
+**Save a view.** Save a named filter over mentions. The filter takes the same fields as GET /v1/mentions (lists are any-of, `not` lists none-of, every condition ANDed), plus `anyOf`, groups of those conditions of which at least one must hold; an empty filter is every mention. Nothing is materialized: the view selects whatever matches when it is read.
 
 CLI: `mentio views:create`
 
@@ -249,6 +325,14 @@ Body (JSON):
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 
 Returns: 201, a `View` (see Shapes below).
 
@@ -307,6 +391,14 @@ Body (JSON):
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 
 Returns: 200, a `View` (see Shapes below).
 
@@ -339,6 +431,8 @@ Returns: 204, no body.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
+  - `title` (string, required, nullable): The post's own title where the platform has one: a Hacker News story, a Reddit thread, a GitHub issue or pull request, a Stack Overflow question, a DEV article, a YouTube video, a news article, a titled review. Null for platforms without titles (X, Bluesky, LinkedIn) and for posts ingested before October 2026.
+  - `imageUrl` (string, required, nullable): A preview image of the post, when the platform sent one with it: a YouTube thumbnail, a DEV cover, a news article's sharing image, a Bluesky link card or image. Null otherwise.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
   - `engagement` (object, required, nullable): Engagement counts as the platform reported them when the post was ingested, usually minutes after it was written; a count the platform does not have is null. Null as a whole for platforms that report none and for posts ingested before September 2026. X carries all six.
@@ -376,7 +470,7 @@ Returns: 204, no body.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
-  - `intents` (array of string, required): Intent and topic tags: buy_intent, question, complaint, praise, comparison, churn_intent (leaving or replacing the keyword), bug_report, pricing, hiring, event, promotional.
+  - `intents` (array of string, required): Intent and topic tags: buy_intent, question, complaint, praise, comparison, churn_intent (leaving or replacing the keyword), bug_report, pricing, hiring, event, promotional, testimonial (a customer vouching for it from their own use), industry_insight (analysis or data about the field), launch (a product or feature launch announcement), feedback (a suggestion or request about it).
   - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
   - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown or classified before languages were recorded.
   - `confidence` (number, required, nullable): How sure the classifier is of its relevance verdict, 0 to 1. null when the verdict came without one: the fallback model judged, or the row was scored before confidence was recorded.
@@ -420,6 +514,46 @@ The group the keyword belongs to.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 - `nextCursor` (string, required, nullable): Pass it back as `cursor` for the next page; null on the last.
+
+### FilterGroup
+
+A group of conditions, all of which must hold: the vocabulary of a view filter, without anyOf.
+
+- `q` (string): Substring in the post text or the author's name.
+- `keywordIds` (array of string): Only matches of any of these keywords.
+- `notKeywordIds` (array of string): Never matches of these keywords.
+- `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+- `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
+- `notGroupIds` (array of string): Never matches of keywords in these groups.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Never posts from these platforms.
+- `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
+- `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
+- `minRelevance` (integer): Only mentions scored at least this.
+- `minConfidence` (number): Only mentions whose classifier confidence is at least this.
+- `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+- `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+- `intents` (array of string): Only mentions carrying any of these intent or topic tags.
+- `notIntents` (array of string): Never mentions carrying these tags.
+- `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
+- `languages` (array of string): Only posts in any of these languages (ISO 639-1).
+- `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
+- `tags` (array of string): Only authors your workspace tagged with any of these.
+- `notTags` (array of string): Never authors tagged with any of these.
+- `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
+- `notLinkHosts` (array of string): Never posts linking to these hosts.
+- `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
+- `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
+- `isReply` (boolean): true: only replies and comments; false: only top-level posts.
+- `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
+- `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
+- `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+- `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+- `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+- `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+- `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+- `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
 
 ### InvoiceList
 
@@ -466,5 +600,13 @@ The group the keyword belongs to.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 - `updatedAt` (string, required): ISO 8601 timestamp, UTC.

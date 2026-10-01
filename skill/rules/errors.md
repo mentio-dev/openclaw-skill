@@ -19,6 +19,7 @@ Every error uses one envelope with a stable machine-readable code. Branch on `er
 | `read_only_key` | 403 | A `read` key on anything but a `GET` | Tell the user the key is read-only; a `write` key is needed for this change. |
 | `validation_error` | 400 | The body or query failed schema validation | Read the message: it names the field. Fix the request; do not resend the same one. |
 | `invalid_cursor` | 400 | The pagination cursor is malformed or expired | Restart the list from the first page with the same filters. |
+| `filter_too_complex` | 400 | The filters together (long lists, `anyOf` groups, a view or alert applied on top) need more than the 100 values one query takes | Shorten the lists or use fewer `anyOf` groups; drop the `viewId` or `alertId` and spell its conditions out if both are needed. |
 | `invalid_assignee` | 400 | `assigneeId` is not a member of the workspace | Ask the user for the member's user id, or skip the assignment. |
 | `schedule_required` | 400 | A `daily` alert without a `schedule` | Add `schedule: { hour, minute, timezone }`. |
 | `unknown_channel` | 400 | A `channelIds` entry is not one of the workspace's channels | `GET /v1/channels` and use an id from there. |

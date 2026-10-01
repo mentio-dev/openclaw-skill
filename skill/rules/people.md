@@ -62,6 +62,7 @@ Query:
 
 - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. People with an account on this platform.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
+- `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
 - `tag` (string): Only people carrying this tag (exact, case-sensitive).
 - `muted` (boolean): true: only muted people; false: only unmuted; omitted: everyone.
 - `since` (string): Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
@@ -203,6 +204,7 @@ Query:
 
 - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. People with an account on this platform.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
+- `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
 - `tag` (string): Only people carrying this tag (exact, case-sensitive).
 - `muted` (boolean): true: only muted people; false: only unmuted; omitted: everyone.
 - `since` (string): Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).

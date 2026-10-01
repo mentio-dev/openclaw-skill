@@ -70,7 +70,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/alerts
 
-**Create an alert.** A rule (what to watch, the filter) times channels. mode instant sends each matching mention as it happens; daily sends one digest at schedule.hour in schedule.timezone; weekly sends one a week on schedule.weekday (0 Sunday to 6 Saturday).
+**Create an alert.** A rule (what to watch, the filter) times channels. mode instant sends each matching mention as it happens; daily sends one digest at schedule.hour in schedule.timezone; weekly sends one a week on schedule.weekday (0 Sunday to 6 Saturday). filter.anyOf adds OR: groups of conditions in the vocabulary of the mentions list, at least one of which must hold on top of the rest of the filter.
 
 CLI: `mentio alerts:create`
 
@@ -94,6 +94,14 @@ Body (JSON):
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): [1, 2] sends the unhappy ones. Every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): [5] keeps the five star reviews out. Posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 - `schedule` (object): Required for daily and weekly alerts (weekly ones also need schedule.weekday).
   - `hour` (integer, required)
   - `minute` (integer)
@@ -147,6 +155,14 @@ Body (JSON): Omitted fields are untouched.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): [1, 2] sends the unhappy ones. Every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): [5] keeps the five star reviews out. Posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 - `schedule` (object, nullable)
   - `hour` (integer, required)
   - `minute` (integer)
@@ -361,6 +377,46 @@ Returns: 200, an object:
 
 ## Shapes
 
+### FilterGroup
+
+A group of conditions, all of which must hold: the vocabulary of a view filter, without anyOf.
+
+- `q` (string): Substring in the post text or the author's name.
+- `keywordIds` (array of string): Only matches of any of these keywords.
+- `notKeywordIds` (array of string): Never matches of these keywords.
+- `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+- `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
+- `notGroupIds` (array of string): Never matches of keywords in these groups.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Never posts from these platforms.
+- `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
+- `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
+- `minRelevance` (integer): Only mentions scored at least this.
+- `minConfidence` (number): Only mentions whose classifier confidence is at least this.
+- `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+- `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+- `intents` (array of string): Only mentions carrying any of these intent or topic tags.
+- `notIntents` (array of string): Never mentions carrying these tags.
+- `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
+- `languages` (array of string): Only posts in any of these languages (ISO 639-1).
+- `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
+- `tags` (array of string): Only authors your workspace tagged with any of these.
+- `notTags` (array of string): Never authors tagged with any of these.
+- `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
+- `notLinkHosts` (array of string): Never posts linking to these hosts.
+- `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
+- `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
+- `isReply` (boolean): true: only replies and comments; false: only top-level posts.
+- `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
+- `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
+- `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+- `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+- `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+- `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+- `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+- `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+
 ### InvoiceList
 
 - `data` (array of object, required): Paid orders, newest first; empty before the first top-up.
@@ -393,6 +449,14 @@ Returns: 200, an object:
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): [1, 2] sends the unhappy ones. Every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): [5] keeps the five star reviews out. Posts that are not reviews still pass.
+  - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
 - `schedule` (object, required, nullable): Daily and weekly alerts only.
   - `hour` (integer, required)
   - `minute` (integer)

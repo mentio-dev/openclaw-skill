@@ -61,6 +61,7 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/filters" -H "Authorization: Bearer 
 | `GET` | `/v1/keywords/{id}` | `mentio keywords:get` | Get a keyword |
 | `PATCH` | `/v1/keywords/{id}` | `mentio keywords:update` | Update a keyword |
 | `DELETE` | `/v1/keywords/{id}` | `mentio keywords:delete` | Delete a keyword |
+| `GET` | `/v1/keywords/{id}/health` | `mentio keywords:health` | Get a keyword's health |
 | `GET` | `/v1/groups` | `mentio groups:list` | List groups |
 | `POST` | `/v1/groups` | `mentio groups:create` | Create a group |
 | `GET` | `/v1/groups/{id}` | `mentio groups:get` | Get a group |
@@ -175,6 +176,23 @@ Path:
 - `id` (string, required): Keyword id (kw_...).
 
 Returns: 204, no body.
+
+### GET /v1/keywords/{id}/health
+
+**Get a keyword's health.** Whether the keyword earns what it costs over a trailing window (`range`, default 30d): a status (healthy, noisy, quiet, capped, paused, new) with the reasons in plain words, its numbers by platform and week, what it cost, the words and authors its noise is made of, and suggestions. Each suggestion carries a `patch` to send to PATCH /v1/keywords/{id} as is, and the effect it would have had, measured by running the matcher's own rules over the window's posts. `ai=true` adds a context rewritten by a language model (cached a day, at most 20 model calls an hour per workspace). Read only and never billed; the report is cached for 5 minutes, and a change to the keyword starts a fresh one. At most 30 reads a minute per workspace.
+
+CLI: `mentio keywords:health`
+
+Path:
+
+- `id` (string, required): Keyword id (kw_...).
+
+Query:
+
+- `range` (string): one of `7d`, `30d`, `90d`. Trailing window of UTC days ending today, by match time: 7d, 30d, 90d (default 30d).
+- `ai` (boolean): true: also ask a language model for a rewritten context (cached a day per keyword and window, at most 20 model calls an hour per workspace). Default false: every suggestion comes from the rules alone.
+
+Returns: 200, a `KeywordHealth` (see Shapes below).
 
 ### GET /v1/groups
 
@@ -325,6 +343,7 @@ The group the keyword belongs to.
     - `scored` (integer, required): Matches of the last 14 days (by match time) the classifier has scored.
     - `relevant` (integer, required): Of those, the ones scored relevant.
     - `noisy` (boolean, required): At least 20 scored matches in the last 14 days and under 30% of them relevant: tighten the keyword with required terms, excluded terms or context. Every match bills, relevant or not.
+  - `health` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. The keyword's health over the same 14 days as `noise`, by the rule GET /v1/keywords/{id}/health applies to its own window: paused (muted), capped (at its mention cap), noisy (20 or more scored matches, under 30% relevant), new (under 7 days old and not noisy, or changed in the last 7 days with under 20 scored matches since), quiet (7 days or older, nothing relevant), else healthy. Judged on the matches since the keyword's last change to its matching rules, platforms or context (or its unmute) when that is inside the 14 days, so a keyword tightened today is not flagged on the noise the change removed; `noise` itself keeps the whole 14 days. Always 14 days, while the endpoint reads 30 by default, so the two can differ for the same keyword. The health endpoint says why and what to change.
   - `cost` (object, required): What this keyword has cost this calendar month (UTC) at list price: exactly its row in GET /v1/usage/breakdown?month=<this month> (same tables, same rounding). The wallet's ledger, which settles once a day, is what can differ from these list-price numbers, and only by cumulative rounding.
     - `keywordDays` (integer, required): Days this month the keyword was charged for: unmuted at the daily tick. A keyword created today reads 0 until tomorrow's tick.
     - `keywordCents` (integer, required): Those days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
@@ -336,6 +355,97 @@ The group the keyword belongs to.
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
   - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
+
+### KeywordHealth
+
+- `keyword` (object, required): The keyword the report is about.
+  - `id` (string, required): Keyword id (kw_...).
+  - `term` (string, required): The term as typed.
+  - `group` (GroupRef, required): The group the keyword belongs to.
+- `window` (object, required): The window the report reads, by match time, in UTC days.
+  - `from` (string, required): First day, YYYY-MM-DD, inclusive, UTC.
+  - `to` (string, required): Last day, inclusive: today.
+  - `days` (integer, required): Length of the window in days.
+- `status` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. healthy: nothing to fix. noisy: 20 or more scored matches in the window and under 30% of them relevant. quiet: 7 days or older with no relevant match in the window. capped: at its monthly mention cap. paused: muted (by you, the wallet or the noise brake). new: under 7 days old and not noisy yet, or changed in the last 7 days with under 20 scored matches since the change. When the keyword's matching rules, platforms or context changed (or it was unmuted) inside the window, the status reads only the matches since then (stats.judgedSince).
+- `reasons` (array of string, required): Why, in plain words; the first line explains the status.
+- `stats` (object, required): Computed over the keyword's matches in the window.
+  - `matches` (integer, required): Matches recorded in the window, relevant or not.
+  - `relevant` (integer, required): Scored at or above the relevance line (40).
+  - `filtered` (integer, required): Scored under the line: the noise. Billed like any match.
+  - `unscored` (integer, required): Not scored yet, or failed to score (never billed).
+  - `noiseShare` (number, required, nullable): filtered / (relevant + filtered); null with nothing scored.
+  - `workspaceShare` (number, required, nullable): This keyword's share of the workspace's matches in the window; null when the workspace matched nothing.
+  - `judgedSince` (string, required, nullable): When the keyword last changed its matching rules, platforms or context (or was unmuted), when that is inside the window: the status, the reasons, noiseTerms, noiseAuthors and suggestions read only the matches since then, while these numbers keep the whole window. Null: everything reads the whole window.
+  - `byPlatform` (array of object, required): One row per platform it matched on, most matches first.
+    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
+    - `matches` (integer, required): Matches on this platform in the window.
+    - `relevant` (integer, required): Of those, scored at or above the relevance line (40).
+    - `filtered` (integer, required): Of those, scored under the line: the noise.
+    - `noiseShare` (number, required, nullable): filtered / (relevant + filtered); null with nothing scored.
+  - `weekly` (array of object, required): The trend, one row per 7 days of the window, oldest first; the last row may be shorter.
+    - `from` (string, required): First day of the 7, YYYY-MM-DD (counted from the window's first day).
+    - `matches` (integer, required): Matches in those 7 days.
+    - `relevant` (integer, required): Of those, relevant.
+  - `cost` (object, required): What the keyword cost over the window at list price.
+    - `keywordDays` (integer, required): Days in the window the keyword was charged for.
+    - `keywordCents` (integer, required): Those days at the keyword rate.
+    - `billableMentions` (integer, required): Matches billed in the window, by the time they were scored.
+    - `mentionCents` (integer, required): Those matches at the mention rate.
+    - `totalCents` (integer, required): keywordCents plus mentionCents: its row in GET /v1/usage/breakdown for the same range.
+- `sample` (object, required): The posts behind noiseTerms, noiseAuthors and the effects, after the keyword's current rules (a post an older rule let in is not counted). Review platforms are matched by app, not by text, and are left out.
+  - `noise` (integer, required): Noise posts read (the newest of the window, or since stats.judgedSince, at most 200), on platforms matched by text. None under 20 scored matches since a change.
+  - `relevant` (integer, required): Relevant posts read, likewise.
+- `noiseTerms` (array of object, required): Up to 10 words or phrases over-represented in the noise against the relevant posts, strongest first. The keyword's own words are left out.
+  - `term` (string, required): A word or two-word phrase.
+  - `noisePosts` (integer, required): Sampled noise posts that carry it.
+  - `relevantPosts` (integer, required): Sampled relevant posts that carry it.
+  - `lift` (number, required, nullable): How many times more common it is in noise than in relevant posts (smoothed); null with no relevant post to compare.
+- `noiseAuthors` (array of object, required): Authors with 3 or more noise posts in the sample and no relevant one.
+  - `name` (string, required): The author as the platform shows them.
+  - `entry` (string, required): What matching.excludedAuthors would store for them.
+  - `noisePosts` (integer, required): Sampled noise posts by them.
+- `suggestions` (array of KeywordSuggestion, required): Changes that would cut the noise, each ready for PATCH /v1/keywords/{id}. Empty when nothing is worth changing, or under 20 scored matches since the last change (a reason says so).
+- `ai` (object, required): The optional language model half of the report.
+  - `requested` (boolean, required): ai=true was asked.
+  - `status` (string, required): one of `off`, `generated`, `cached`, `unavailable`, `rate_limited`. off: not asked. generated: written now. cached: written earlier today for the same keyword, window and settings. unavailable: the model failed, answered nothing usable or is not configured. rate_limited: the workspace's 20 model calls this hour are spent.
+- `generatedAt` (string, required): When the report was computed; it is cached for 5 minutes, and a change to the keyword starts a fresh one.
+
+### KeywordSuggestion
+
+- `type` (string, required): one of `excluded_terms`, `excluded_authors`, `required_terms`, `platforms`, `context`. excluded_terms and excluded_authors add to the matching rules; required_terms sets them; platforms drops the platforms that are almost all noise; context rewrites the sentence the classifier reads.
+- `values` (array of string, required): What it adds (terms, authors), drops (platforms) or writes (the context).
+- `why` (string, required): The reason and the measured effect, in plain words.
+- `patch` (object, required): The body to send to PATCH /v1/keywords/{id} as is to apply it. A list holds the whole new list, current entries kept.
+  - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
+  - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
+  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
+  - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+  - `matching` (object): Omitted fields are untouched; an empty list clears one.
+    - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
+    - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
+    - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
+    - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
+    - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+  - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
+    - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
+  - `reviewSources` (array of object): Replaces the list of apps whose reviews this keyword collects; [] disconnects them all (their reviews stay). An app or country added here gets the free 30-day look-back; one already listed keeps its place.
+    - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
+    - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
+    - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
+    - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
+    - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
+- `effect` (object, required, nullable): What the change would have done over the window, measured with the matcher's own rules. Null for a context, which changes scores, not matches.
+  - `noiseRemoved` (integer, required): Noise matches of the window (since stats.judgedSince when set) the change would have removed (estimated from the sample unless exact).
+  - `relevantRemoved` (integer, required): Relevant matches of the window it would have removed.
+  - `centsSaved` (integer, required): What the removed matches cost at the mention rate: what the change would have saved over the window.
+  - `sample` (object, required): The measurement behind the estimate: the matcher's own rules run over the sampled posts.
+    - `noiseRemoved` (integer, required): Sampled noise posts the change rejects.
+    - `noise` (integer, required): Noise posts sampled.
+    - `relevantRemoved` (integer, required): Sampled relevant posts the change rejects.
+    - `relevant` (integer, required): Relevant posts sampled.
+  - `exact` (boolean, required): The sample was the whole window, so the counts are measured, not estimated.
+- `source` (string, required): one of `rules`, `ai`. rules: computed from the window's posts. ai: written by a language model (ai=true).
 
 ### InvoiceList
 
