@@ -23,7 +23,8 @@ Every error uses one envelope with a stable machine-readable code. Branch on `er
 | `invalid_assignee` | 400 | `assigneeId` is not a member of the workspace | Ask the user for the member's user id, or skip the assignment. |
 | `schedule_required` | 400 | A `daily` alert without a `schedule` | Add `schedule: { hour, minute, timezone }`. |
 | `unknown_channel` | 400 | A `channelIds` entry is not one of the workspace's channels | `GET /v1/channels` and use an id from there. |
-| `not_a_digest` | 400 | `POST /v1/alerts/{id}/run` on an `instant` alert | Only daily alerts can be run now; use `/test` for an instant one. |
+| `not_a_digest` | 400 | `POST /v1/alerts/{id}/run` on an `instant` alert | Only hourly, daily and weekly alerts can be run now; use `/test` for an instant one. |
+| `hourly_email_unsupported` | 400 | An `hourly` alert with an email channel | Hourly digests go to Slack, Telegram and webhooks: drop the email channel, or use `daily` for email. |
 | `insufficient_balance` | 402 | Creating or unmuting a keyword needs balance for one more keyword-day | The prepaid balance is too low. Point the user to https://app.mentio.dev/billing; do not retry. |
 | `keyword_limit_reached` | 402 | The 500-keyword self-serve ceiling | Beyond 500 keywords is an enterprise conversation: https://mentio.dev/enterprise. |
 | `not_found` | 404 | The resource does not exist or belongs to another workspace | Check the id (prefix and source). List the collection to find the right one. |

@@ -152,13 +152,15 @@ curl -sS "${API}/v1/people?segmentId=seg_...&sort=reach" ${AUTH}`,
   },
   {
     slug: 'alerts',
-    title: 'Alerts and channels',
-    nouns: ['alerts', 'channels'],
+    title: 'Alerts, channels and attention',
+    nouns: ['alerts', 'channels', 'attention'],
     intro: `An alert is a rule times one or more channels. The rule says what to watch (a \`filter\` over keywords, platforms, minimum relevance, sentiments, intents, \`languages\` (ISO 639-1), author reach and tags, the hosts a post links to in \`linkHosts\`, excluded authors, \`automated\` for or against bots) and when: \`instant\` fires per mention as it is classified, \`daily\` sends one digest at \`schedule\` (hour, minute, IANA timezone) with the day's counts, the split by platform, the top mentions, anything negative and buying signals; \`weekly\` sends one a week on \`schedule.weekday\` (0 Sunday to 6 Saturday) covering the week; \`skipEmpty\` skips periods with nothing new. A channel is where a message lands and can serve any number of rules. Alerts and digests are never billed.
 
 Channels by kind: \`slack\` and \`telegram\` are connected in the dashboard (Slack through an OAuth install, Telegram by pressing Start on the bot), so list them and use their ids; when there is none, tell the user to connect it at https://app.mentio.dev/alerts. \`email\` takes a list of addresses (members of the workspace are confirmed on sight, anyone else gets a confirmation link and receives nothing until they click it; instant email is capped at 20 per hour per channel). \`webhook\` takes a URL and optional headers of the user's own; the response carries \`config.secret\` ONCE, which signs every delivery (\`X-Mentions-Signature-V2\`: \`v2=\` plus the hex HMAC-SHA256 of \`<X-Mentions-Timestamp>.<raw body>\`, to be rejected when the timestamp is more than a few minutes old; \`X-Mentions-Signature\` over the body alone stays for older verifiers), so show it to the user right away.
 
 Webhook payloads are \`{ id, event, createdAt, alert: {id, name}, data }\`; \`event\` is the rule's own name (\`mention.negative\`, \`mention.buy_intent\`, anything lowercase and dotted) so one endpoint can serve many rules, defaulting to \`mention.matched\` for instant rules and \`digest\` for daily ones. \`data\` is the mention or the digest exactly as the API shapes it. A 2xx within 10 seconds is success; timeouts, 408, 429 and 5xx are retried up to 5 times about 30 seconds apart with the same \`id\`, so consumers deduplicate on it.
+
+Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (\`mention.spike\`), whose negative share of the last 24 hours jumped (\`sentiment.negative_spike\`), that turned noisy (\`keyword.noisy\`), or a channel whose last 5 sends failed (\`channel.failing\`). \`GET /v1/attention\` lists the open ones (\`status=all\` for the history, \`kind\` to narrow), each with a one-line \`title\` and its facts in \`data\` (\`data.url\` is the dashboard page to look at); an item resolves on its own when the condition is gone, and \`POST /v1/attention/{id}/dismiss\` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with \`events\` like the keyword and wallet events, and Slack, email and Telegram channels can subscribe to these four only (\`PATCH /v1/channels/{id}\` with \`events\`). When the user asks what needs a look, start with the open attention items.
 
 Testing: \`POST /v1/channels/{id}/test\` sends \`event: "test"\` to one channel, \`POST /v1/alerts/{id}/test\` through every channel of a rule, \`POST /v1/alerts/{id}/run\` sends a daily rule's last 24 hours now without moving its schedule, and \`GET /v1/channels/{id}/deliveries\` shows what went out and how it went. Confirm before deleting a rule or a channel and before rotating a secret (the old one stops verifying at once).`,
     examples: `# What channels exist, then a rule for negative mentions to the Slack one
@@ -178,6 +180,10 @@ curl -sS -X POST "${API}/v1/channels" ${JSON_HEADERS} \\
   -d '{"kind": "webhook", "url": "https://example.com/hooks/mentio", "label": "Production", "headers": {"Authorization": "Bearer their-own-token"}}'
 curl -sS -X POST "${API}/v1/alerts" ${JSON_HEADERS} \\
   -d '{"name": "Buying signals", "mode": "instant", "event": "mention.buy_intent", "filter": {"intents": ["buy_intent"], "minRelevance": 60}, "channelIds": ["dest_..."]}'
+
+# What needs a look right now, then send spikes and failing channels to a Slack channel
+curl -sS "${API}/v1/attention" ${AUTH}
+curl -sS -X PATCH "${API}/v1/channels/dest_..." ${JSON_HEADERS} -d '{"events": ["mention.spike", "channel.failing"]}'
 
 # Prove it works, then see the log
 curl -sS -X POST "${API}/v1/alerts/feed_.../test" ${AUTH}
