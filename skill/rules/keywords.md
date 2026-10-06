@@ -97,7 +97,7 @@ CLI: `mentio keywords:create`
 
 Body (JSON):
 
-- `term` (string, required): The word or phrase to track, matched case-insensitively as a phrase.
+- `term` (string, required): The word or phrase to track, case-insensitive. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews, which then needs reviewSources.
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
@@ -107,6 +107,7 @@ Body (JSON):
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+  - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
 - `cap` (object, nullable): A monthly mention cap; omit or null for none.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
@@ -153,6 +154,7 @@ Body (JSON): Omitted fields are untouched.
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+  - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
 - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
   - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
 - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
@@ -330,6 +332,7 @@ The group the keyword belongs to.
   - `excludedTerms` (array of string, required): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string, required): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean, required): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+  - `exactPhrase` (boolean, required): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
@@ -426,6 +429,7 @@ The group the keyword belongs to.
     - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+    - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
   - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
     - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
   - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.

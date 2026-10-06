@@ -423,10 +423,11 @@ Returns: 204, no body.
 - `relevant` (boolean, required): The classifier scored it at or above the delivery threshold (40).
 - `delivered` (boolean, required): Reached at least one of your channels.
 - `priority` (number, required): Attention score, one decimal, computed at read time: relevance halved, author reach on a follower ladder (unknown reach counts 8), the strongest intent (buy intent 20 down to praise 5), minus 2 per day of age floored at 20.
-- `keyword` (object, required): The keyword this post matched, and the group it is in.
+- `keyword` (object, required): The keyword this post matched, the group it is in, and how it matched.
   - `id` (string, required): Keyword id (kw_...).
   - `term` (string, required): The tracked term.
   - `group` (GroupRef, required): The group the keyword belongs to.
+  - `matchedAs` (string, required): one of `phrase`, `close_words`. phrase: the post holds the term as written. close_words: it holds the term's words close together, in another order or form (kept and billed only because the classifier scored it relevant).
 - `post` (object, required)
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
   - `url` (string, required): Permalink of the post.
