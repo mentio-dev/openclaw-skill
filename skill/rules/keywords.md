@@ -91,7 +91,7 @@ Returns: 200, `{ data: Keyword[], total }` (see Shapes below).
 
 ### POST /v1/keywords
 
-**Track a keyword.** Start tracking a word or phrase. Matching, classification and delivery begin on the next poll. A funded workspace tracks up to 500 keywords; each costs $5 per month, deducted daily from the balance. `matching` narrows what the term matches (required and excluded terms, excluded authors, case) before a mention is stored, so a rejected post is never billed; `context` is a sentence the classifier reads for this keyword only. `cap` puts a monthly ceiling on its matched mentions: at the cap it stops matching until the first of the next month (UTC) or until the cap is raised, while its daily keyword charge continues.
+**Track a keyword.** Start tracking a word or phrase. Matching, classification and delivery begin on the next poll. A funded workspace tracks up to 500 keywords; each costs $5 per month, deducted daily from the balance. `matching` narrows what the term matches (required and excluded terms, excluded authors, case, subreddits, GitHub repository events) before a mention is stored, so a rejected post is never billed; `context` is a sentence the classifier reads for this keyword only. `cap` puts a monthly ceiling on its matched mentions: at the cap it stops matching until the first of the next month (UTC) or until the cap is raised, while its daily keyword charge continues.
 
 CLI: `mentio keywords:create`
 
