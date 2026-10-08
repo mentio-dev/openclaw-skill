@@ -446,7 +446,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
 - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
-- `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment).
+- `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
 - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.

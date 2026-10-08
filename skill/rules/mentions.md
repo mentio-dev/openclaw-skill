@@ -91,7 +91,7 @@ Query:
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
-- `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment). Omitted: both.
+- `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository). Omitted: all.
 - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
@@ -207,7 +207,7 @@ Query:
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
-- `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment). Omitted: both.
+- `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository). Omitted: all.
 - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
@@ -270,7 +270,7 @@ Query:
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
 - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
-- `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment). Omitted: both.
+- `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository). Omitted: all.
 - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
@@ -355,7 +355,7 @@ Body (JSON):
   - `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
-  - `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment).
+  - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
@@ -424,7 +424,7 @@ Body (JSON):
   - `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
-  - `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment).
+  - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
@@ -467,13 +467,18 @@ Returns: 204, no body.
   - `matchedIn` (string, required): one of `text`, `speech`. text: the term is in the post itself (its text, caption, hashtags or review). speech: it is only in what is said in the video (TikTok), whose transcript follows the 🎙 mark in post.text.
 - `post` (object, required)
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
-  - `kind` (string, required): one of `post`, `comment`. post: a top-level post. comment: an item that answers a post or another comment (a Reddit or Hacker News comment, an X or Bluesky reply, a Stack Overflow answer, a YouTube comment).
+  - `kind` (string, required): one of `post`, `comment`, `repository`. post: a top-level post. comment: an item that answers a post or another comment (a Reddit or Hacker News comment, an X or Bluesky reply, a Stack Overflow answer, a YouTube comment). repository: an event about a GitHub repository naming the keyword (see post.repository).
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
   - `title` (string, required, nullable): The post's own title where the platform has one: a Hacker News story, a Reddit thread, a GitHub issue or pull request, a Stack Overflow question, a DEV article, a YouTube video, a news article, a titled review. Null for platforms without titles (X, Bluesky, LinkedIn) and for posts ingested before October 2026.
   - `imageUrl` (string, required, nullable): A preview image of the post, when the platform sent one with it: a YouTube thumbnail, a DEV cover, a news article's sharing image, a Bluesky link card or image. Null otherwise.
   - `subreddit` (string, required, nullable): The subreddit a Reddit post was written in, without the r/ (SaaS). Null on every other platform.
   - `flair` (string, required, nullable): A Reddit post's flair, when its subreddit uses them (Question, Show and Tell). Null otherwise.
+  - `repository` (object, required, nullable): A GitHub repository event's facts, on a mention whose kind is repository; null on every other mention. The sentence is post.title.
+    - `name` (string, required): The repository, owner/name.
+    - `event` (string, required): one of `new`, `traction`, `stars`, `growth`, `top`. What happened. new: it was created. traction: under 30 days old, it reached 10 stars. stars: it passed a star milestone. growth: it gained stars fast in a week. top: one of the most starred repositories naming the keyword, brought by a new keyword's look-back.
+    - `stars` (integer, required): Its stars when the event was found.
+    - `weeklyStars` (integer, required, nullable): Stars gained in the 7 days before the event; null when that week is not known yet.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
   - `engagement` (object, required, nullable): Engagement counts as the platform reported them when the post was ingested, usually minutes after it was written; a count the platform does not have is null. Null as a whole for platforms that report none and for posts ingested before September 2026. X carries all six.
@@ -620,7 +625,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
 - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
-- `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment).
+- `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
 - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
@@ -676,7 +681,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minFollowers` (integer): Only authors with at least this many followers; unknown reach never passes.
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
-  - `kind` (string): one of `post`, `comment`. Only posts (post) or only comments (comment).
+  - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.

@@ -108,6 +108,10 @@ Body (JSON):
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
+    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
+    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
@@ -163,6 +167,10 @@ Body (JSON): Omitted fields are untouched.
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
+    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
+    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
@@ -362,6 +370,10 @@ The group the keyword belongs to.
   - `subreddits` (object, required): Reddit only, for this keyword alone; the workspace filters' own subreddit lists (GET /v1/filters) still apply to every keyword, and a post must pass both.
     - `only` (array of string, required): When non-empty, this keyword takes Reddit posts from these subreddits ONLY and `excluded` is ignored. r/name or name, stored bare and lowercase.
     - `excluded` (array of string, required): Reddit posts from these subreddits are dropped for this keyword. r/name or name.
+  - `repositories` (object, required): GitHub only: which repository events naming this keyword become mentions. An event outside the rule is dropped before it is stored, so it is never billed.
+    - `events` (array of string, required): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `minStars` (integer, required, nullable): Only repositories with at least this many stars; null for no minimum.
+    - `minWeeklyStars` (integer, required, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
@@ -463,6 +475,10 @@ The group the keyword belongs to.
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
     - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+    - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
+      - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+      - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
+      - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
     - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
       - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
       - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
