@@ -61,6 +61,7 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/filters" -H "Authorization: Bearer 
 | `GET` | `/v1/keywords/{id}` | `mentio keywords:get` | Get a keyword |
 | `PATCH` | `/v1/keywords/{id}` | `mentio keywords:update` | Update a keyword |
 | `DELETE` | `/v1/keywords/{id}` | `mentio keywords:delete` | Delete a keyword |
+| `POST` | `/v1/keywords/{id}/duplicate` | `mentio keywords:duplicate` | Duplicate a keyword |
 | `GET` | `/v1/keywords/{id}/health` | `mentio keywords:health` | Get a keyword's health |
 | `GET` | `/v1/groups` | `mentio groups:list` | List groups |
 | `POST` | `/v1/groups` | `mentio groups:create` | Create a group |
@@ -146,7 +147,7 @@ Returns: 200, a `Keyword` (see Shapes below).
 
 ### PATCH /v1/keywords/{id}
 
-**Update a keyword.** Mute or unmute it, reclassify it (`kind`), change the platforms it is tracked on, its classifier `context`, its `matching` rules (each rule field optional; an empty list clears one), or its monthly mention `cap` (null removes it; a cap above this month's count resumes a capped keyword at once). Rules apply to new mentions from the next poll; stored mentions are untouched.
+**Update a keyword.** Rename it (`term`: the new term is tracked from now on, with no look-back; the mentions the old term found stay), mute or unmute it, reclassify it (`kind`), change the platforms it is tracked on, its classifier `context`, its `matching` rules (each rule field optional; an empty list clears one), or its monthly mention `cap` (null removes it; a cap above this month's count resumes a capped keyword at once). Rules apply to new mentions from the next poll; stored mentions are untouched.
 
 CLI: `mentio keywords:update`
 
@@ -156,6 +157,7 @@ Path:
 
 Body (JSON): Omitted fields are untouched.
 
+- `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, and the keyword keeps its id, its settings and the mentions the old term found. Wrap it in double quotes for the exact phrase only. A 409 when its group already tracks the new term.
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
@@ -202,6 +204,24 @@ Path:
 - `id` (string, required): Keyword id (kw_...).
 
 Returns: 204, no body.
+
+### POST /v1/keywords/{id}/duplicate
+
+**Duplicate a keyword.** A new keyword with this one's settings and a new `term` (or the same term in another group): its kind, platforms, context, every matching rule, its monthly mention cap and its comments setting. Review apps and feeds are copied only when listed in `include`. It is a new keyword: $5 per month, and the newest posts of the last 30 days come in at once, as with any new keyword.
+
+CLI: `mentio keywords:duplicate`
+
+Path:
+
+- `id` (string, required): Keyword id (kw_...).
+
+Body (JSON):
+
+- `term` (string, required): The term of the copy. The same term as the original only in another group (groupId): a term is tracked once per group. Wrap it in double quotes for the exact phrase only.
+- `groupId` (string): The group of the copy (grp_...); omit for the original's group.
+- `include` (array of string): one of `reviewSources`, `feeds`. Also copy these: reviewSources (its review apps) and feeds (its RSS or Atom feeds). Off by default, since two keywords on one app or feed collect, and bill, every review or item twice.
+
+Returns: 201, a `Keyword` (see Shapes below).
 
 ### GET /v1/keywords/{id}/health
 
@@ -464,6 +484,7 @@ The group the keyword belongs to.
 - `values` (array of string, required): What it adds (terms, authors), drops (platforms) or writes (the context).
 - `why` (string, required): The reason and the measured effect, in plain words.
 - `patch` (object, required): The body to send to PATCH /v1/keywords/{id} as is to apply it. A list holds the whole new list, current entries kept.
+  - `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, and the keyword keeps its id, its settings and the mentions the old term found. Wrap it in double quotes for the exact phrase only. A 409 when its group already tracks the new term.
   - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
   - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
   - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
