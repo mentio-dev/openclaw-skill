@@ -347,7 +347,7 @@ Returns: 200, an object:
 
 - `balance` (object, required): The prepaid wallet.
   - `cents` (integer, required): Ledger balance: every credit minus every settled debit.
-  - `pendingCents` (integer, required): Mentions matched since the last daily settlement, priced but not yet debited.
+  - `pendingCents` (integer, required): Mentions and comments billed since the last daily settlement, priced but not yet debited.
   - `effectiveCents` (integer, required): cents minus pendingCents: what the stop rule and the keyword gate look at.
   - `currency` (string, required): one of `USD`
 - `burn` (object, required): How fast the balance goes.
@@ -380,11 +380,13 @@ Returns: 200, an object:
   - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
   - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
   - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
+  - `unclassifiedMentions` (integer, required): Matches recorded in the window that are never charged: no score yet (still being scored, or classification failed), or a free review from the look-back of a newly connected app. Every other match is charged, on the mentions line or, for a comment, on the comments line.
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
-  - `totalCents` (integer, required): keywordCents plus mentionCents.
-  - `unclassifiedMentions` (integer, required): Matched but never scored (classification failed): never charged.
+  - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
+  - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
+  - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
   - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
-  - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same.
+  - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same. Comments carry their keyword and platform on the billed row, so they are never unattributed (by=group puts a deleted keyword's comments on the no-group row).
 - `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
   - `key` (string, required): The row's key: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword, the group id for by=group.
   - `label` (string, required): Readable name: the keyword term or the group name, otherwise the key.
@@ -400,15 +402,18 @@ Returns: 200, an object:
   - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
   - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
   - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
+  - `unclassifiedMentions` (integer, required): Matches recorded in the window that are never charged: no score yet (still being scored, or classification failed), or a free review from the look-back of a newly connected app. Every other match is charged, on the mentions line or, for a comment, on the comments line.
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
-  - `totalCents` (integer, required): keywordCents plus mentionCents.
+  - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
+  - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
+  - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
 - `total` (integer, required): Rows in the dimension before `limit` and `offset`.
 
 ### LedgerList
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions or adjustment.
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments or adjustment.
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
   - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
@@ -420,7 +425,7 @@ Returns: 200, an object:
 ### Wallet
 
 - `balanceCents` (integer, required): Ledger balance: every credit minus every settled debit.
-- `pendingCents` (integer, required): Mentions matched since the last daily settlement, priced but not yet debited.
+- `pendingCents` (integer, required): Mentions and comments billed since the last daily settlement, priced but not yet debited.
 - `effectiveBalanceCents` (integer, required): balanceCents minus pendingCents: what the stop sweep and the keyword gate look at.
 - `burnPerDayCents` (integer, required): Average daily debit over the last 7 days (or since the workspace was created).
 - `daysLeft` (integer, required, nullable): effectiveBalanceCents divided by burnPerDayCents; null when nothing is burning.

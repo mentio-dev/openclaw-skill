@@ -82,7 +82,7 @@ Query:
 - `groupId` (array of string, nullable): Only keywords in any of these groups (grp_...). Repeatable, or comma-separated.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `status` (array of string): one of `active`, `muted`, `paused`, `noisy`, `capped`. Only keywords in these states: active, muted, paused, capped. Repeatable, or comma-separated.
-- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
+- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
 - `offset` (integer, nullable): Skip this many keywords.
@@ -99,7 +99,7 @@ Body (JSON):
 
 - `term` (string, required): The word or phrase to track, case-insensitive. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews, which then needs reviewSources.
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. Empty: no requirement.
@@ -108,8 +108,14 @@ Body (JSON):
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
+    - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
+    - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
 - `cap` (object, nullable): A monthly mention cap; omit or null for none.
-  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+- `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
+  - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
+  - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
 - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
 - `reviewSources` (array of object): Review pages this keyword collects, at most 10: App Store and Google Play apps, Trustpilot pages, Google Maps places. Every new review of one is a mention of the keyword, whatever its text says. Polled once a day (per country on the app stores). A newly connected page brings its last 30 days, the newest 100 reviews (per country), free and never sent as instant alerts; after that each review bills like any mention.
   - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
@@ -117,6 +123,8 @@ Body (JSON):
   - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
   - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
+- `feeds` (array of object): RSS or Atom feeds this keyword reads, at most 20, each { url }: a feed's URL, or a page's (a forum, a community, a blog), in which case the feed the page advertises is used, else a usual address such as /feed or /rss. A URL with no feed behind it is a 400. Each feed is read every hour; an item is a mention of this keyword when it holds the term (with the keyword's matching rules), and only of keywords that named the feed. A newly connected feed brings its newest 10 items of the last 30 days that hold the term, billed like any mention and never sent as instant alerts.
+  - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
 
 Returns: 201, a `Keyword` (see Shapes below).
 
@@ -155,8 +163,14 @@ Body (JSON): Omitted fields are untouched.
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
+    - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
+    - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
 - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
-  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+- `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
+  - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
+  - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
 - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
 - `reviewSources` (array of object): Replaces the list of apps whose reviews this keyword collects; [] disconnects them all (their reviews stay). An app or country added here gets the free 30-day look-back; one already listed keeps its place.
   - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
@@ -164,6 +178,8 @@ Body (JSON): Omitted fields are untouched.
   - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
   - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
+- `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
+  - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
 
 Returns: 200, a `Keyword` (see Shapes below).
 
@@ -300,6 +316,12 @@ The group the keyword belongs to.
 - `externalId` (string, required, nullable): Your own id for the group, or null.
 - `isDefault` (boolean, required): The workspace's default group, where a keyword lands when no group is named.
 
+### KeywordFeed
+
+- `url` (string, required): The feed itself (after redirects): what is polled.
+- `title` (string, required, nullable): The feed's own title, when it has one.
+- `connectedAt` (string, required): When this keyword started reading the feed: nothing published before it is a live mention.
+
 ### ReviewSource
 
 - `platform` (string, required): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
@@ -319,11 +341,15 @@ The group the keyword belongs to.
 - `pausedForNoise` (boolean, required): Muted by the noise brake: on a workspace running on its welcome credit, at least 20 of its matches were scored and under 30% were relevant. A change of its required or excluded terms, platforms or context resumes it (when the balance covers another day), and so does unmuting; a top-up does not.
 - `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
 - `cap` (object, required, nullable): The monthly mention cap, or null for none.
-  - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
   - `welcome` (boolean, required): Set by Mentio, not you: a workspace on its welcome credit collects at most 200 mentions a keyword a month. The first top-up removes it.
   - `own` (integer, required, nullable): Your own cap. With welcome true, the cap the keyword gets back at the first top-up (null for none); otherwise the same as mentions. Sending mentions: 200 back while welcome is true changes nothing.
+- `comments` (object, required): Comments under this keyword's mentions: when enabled, the comments of every mention scored relevant are read from 30 minutes after the post, on a schedule per platform (for a day on Reddit, Hacker News and Bluesky, a week on GitHub, Stack Overflow and DEV, a month on YouTube) (new comments only, at most maxPerPost a thread, comments of fewer than three words dropped), on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit. List them with GET /v1/mentions/{id}/comments.
+  - `enabled` (boolean, required): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
+  - `maxPerPost` (integer, required): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
 - `group` (GroupRef, required): The group the keyword belongs to.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+- `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
 - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
 - `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
@@ -333,11 +359,14 @@ The group the keyword belongs to.
   - `excludedAuthors` (array of string, required): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean, required): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean, required): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `subreddits` (object, required): Reddit only, for this keyword alone; the workspace filters' own subreddit lists (GET /v1/filters) still apply to every keyword, and a post must pass both.
+    - `only` (array of string, required): When non-empty, this keyword takes Reddit posts from these subreddits ONLY and `excluded` is ignored. r/name or name, stored bare and lowercase.
+    - `excluded` (array of string, required): Reddit posts from these subreddits are dropped for this keyword. r/name or name.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
   - `last7d` (integer, required): Matches published in the last 7 days.
-  - `thisMonth` (integer, required): Matches recorded this calendar month (UTC), the count a cap compares against.
+  - `thisMonth` (integer, required): Matches recorded this calendar month (UTC), plus the thread comments delivered under this keyword's mentions: the count a cap compares against.
   - `lastMentionAt` (string, required, nullable): Newest matched post; null until the first one.
   - `feedback` (object, required): Your verdicts on this keyword's mentions (PATCH /v1/mentions/{id} relevant).
     - `relevant` (integer, required): Mentions a person marked relevant.
@@ -352,9 +381,11 @@ The group the keyword belongs to.
     - `keywordCents` (integer, required): Those days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
     - `billableMentions` (integer, required): Matches billed this month, counted when they were scored (the clock the ledger settles by), so it can trail thisMonth by the matches still being scored and never counts one that failed to score.
     - `mentionCents` (integer, required): Those matches at $0.008 each, rounded once on the total.
-    - `totalCents` (integer, required): keywordCents plus mentionCents: what this keyword has cost this month, in USD cents.
+    - `billableComments` (integer, required): Comments billed this month under this keyword: comments delivered in its threads and comments it matched, each once per workspace.
+    - `commentCents` (integer, required): Those comments at $0.008 each, rounded once on the total.
+    - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents: what this keyword has cost this month, in USD cents.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
   - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
@@ -380,7 +411,7 @@ The group the keyword belongs to.
   - `workspaceShare` (number, required, nullable): This keyword's share of the workspace's matches in the window; null when the workspace matched nothing.
   - `judgedSince` (string, required, nullable): When the keyword last changed its matching rules, platforms or context (or was unmuted), when that is inside the window: the status, the reasons, noiseTerms, noiseAuthors and suggestions read only the matches since then, while these numbers keep the whole window. Null: everything reads the whole window.
   - `byPlatform` (array of object, required): One row per platform it matched on, most matches first.
-    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place).
+    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
     - `matches` (integer, required): Matches on this platform in the window.
     - `relevant` (integer, required): Of those, scored at or above the relevance line (40).
     - `filtered` (integer, required): Of those, scored under the line: the noise.
@@ -394,7 +425,9 @@ The group the keyword belongs to.
     - `keywordCents` (integer, required): Those days at the keyword rate.
     - `billableMentions` (integer, required): Matches billed in the window, by the time they were scored.
     - `mentionCents` (integer, required): Those matches at the mention rate.
-    - `totalCents` (integer, required): keywordCents plus mentionCents: its row in GET /v1/usage/breakdown for the same range.
+    - `billableComments` (integer, required): Comments billed in the window under the keyword (0074).
+    - `commentCents` (integer, required): Those comments at the comment rate.
+    - `totalCents` (integer, required): keywordCents, mentionCents and commentCents: its row in GET /v1/usage/breakdown for the same range.
 - `sample` (object, required): The posts behind noiseTerms, noiseAuthors and the effects, after the keyword's current rules (a post an older rule let in is not counted). Review platforms are matched by app, not by text, and are left out.
   - `noise` (integer, required): Noise posts read (the newest of the window, or since stats.judgedSince, at most 200), on platforms matched by text. None under 20 scored matches since a change.
   - `relevant` (integer, required): Relevant posts read, likewise.
@@ -430,8 +463,14 @@ The group the keyword belongs to.
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
     - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+    - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
+      - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
+      - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
   - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
-    - `mentions` (integer, required): Matched mentions allowed per calendar month (UTC). Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+    - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
+    - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
+    - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
   - `groupId` (string): Moves the keyword to this group (grp_...). A 409 when that group already tracks the term.
   - `reviewSources` (array of object): Replaces the list of apps whose reviews this keyword collects; [] disconnects them all (their reviews stay). An app or country added here gets the free 30-day look-back; one already listed keeps its place.
     - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
@@ -439,6 +478,8 @@ The group the keyword belongs to.
     - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
     - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
     - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
+  - `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
+    - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
 - `effect` (object, required, nullable): What the change would have done over the window, measured with the matcher's own rules. Null for a context, which changes scores, not matches.
   - `noiseRemoved` (integer, required): Noise matches of the window (since stats.judgedSince when set) the change would have removed (estimated from the sample unless exact).
   - `relevantRemoved` (integer, required): Relevant matches of the window it would have removed.
