@@ -178,6 +178,11 @@ Query:
 - `by` (string): one of `day`, `platform`, `keyword`, `group`. The dimension to group by: day (one row per UTC day of the window), platform, keyword (default: the row a margin is computed from), or group (what a customer or a campaign cost).
 - `range` (string): one of `7d`, `30d`, `90d`. Trailing window of UTC days ending today: 7d, 30d, 90d (default 30d). Ignored when `month` is given.
 - `month` (string): A calendar month (YYYY-MM, UTC) instead of a trailing window: from its first day to its last, or to today for the running month. A future month is a 400.
+- `from` (string): First UTC day of a custom window, YYYY-MM-DD, inclusive; with `to` (default today). At most 366 days. Wins over `range` and `month`.
+- `to` (string): Last UTC day of a custom window, YYYY-MM-DD, inclusive; never after today. Needs `from`.
+- `keywordIds` (array of string, nullable): Only these keywords (kw_...), deleted ones included. Repeatable, or comma-separated.
+- `groupIds` (array of string, nullable): Only these groups (grp_...): a keyword-day by the group it was metered under, a mention or a comment by its keyword's group as it is now. Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. A keyword-day belongs to no platform, so with this filter the keyword line reads 0 and only mentions and comments count. Repeatable, or comma-separated.
 - `limit` (integer): Rows per page, 1 to 500 (default 100). Only by=keyword can outgrow a page; a window has at most 90 days and a dozen platforms.
 - `offset` (integer, nullable): Skip this many rows.
 
@@ -374,6 +379,7 @@ Returns: 200, an object:
   - `days` (integer, required): Length of the window in days.
   - `keywordDaysFrom` (string, required, nullable): The first day of the window with a recorded keyword count, or null when there is none. Earlier days carry keywordDays: null.
 - `by` (string, required): one of `day`, `platform`, `keyword`, `group`. The dimension the rows are grouped by.
+- `filtered` (boolean, required): true when keywordIds, groupIds or platforms narrowed the report: totals and rows count only what passes them, except totals.ledgerDebitCents, which is the whole workspace's.
 - `currency` (string, required): one of `USD`. Every amount is in USD cents.
 - `totals` (object, required): The whole window as one line, the same for every dimension.
   - `keywordDays` (integer, required): Keyword-days metered in the window.
@@ -385,7 +391,7 @@ Returns: 200, an object:
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
   - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
-  - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
+  - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled, for the whole workspace whatever the filters. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
   - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same. Comments carry their keyword and platform on the billed row, so they are never unattributed (by=group puts a deleted keyword's comments on the no-group row).
 - `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
   - `key` (string, required): The row's key: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword, the group id for by=group.
