@@ -116,8 +116,9 @@ Body (JSON):
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
-- `cap` (object, nullable): A monthly mention cap; omit or null for none.
-  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+- `cap` (object, nullable): A mention cap per day, week or month (per, default month); omit or null for none.
+  - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
 - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
   - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
   - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
@@ -176,8 +177,9 @@ Body (JSON): Omitted fields are untouched.
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
-- `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
-  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+- `cap` (object, nullable): Replaces the mention cap and its period (per, default month); null removes it. A cap above the current period's count resumes a capped keyword at once, one at or under it pauses it.
+  - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
 - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
   - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
   - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
@@ -368,10 +370,14 @@ The group the keyword belongs to.
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
 - `pausedForNoise` (boolean, required): Muted by the noise brake: on a workspace running on its welcome credit, at least 20 of its matches were scored and under 30% were relevant. A change of its required or excluded terms, platforms or context resumes it (when the balance covers another day), and so does unmuting; a top-up does not.
 - `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
-- `cap` (object, required, nullable): The monthly mention cap, or null for none.
-  - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+- `cap` (object, required, nullable): The mention cap and its period, or null for none.
+  - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
+  - `used` (integer, required): Charged items (matches plus thread comments) counted in the current period: today, this week from Monday or this month, UTC. The keyword pauses when it reaches mentions.
   - `welcome` (boolean, required): Set by Mentio, not you: a workspace on its welcome credit collects at most 200 mentions a keyword a month. The first top-up removes it.
   - `own` (integer, required, nullable): Your own cap. With welcome true, the cap the keyword gets back at the first top-up (null for none); otherwise the same as mentions. Sending mentions: 200 back while welcome is true changes nothing.
+  - `ownPer` (string, required, nullable): one of `day`, `week`, `month`. The period of your own cap (null when own is null); with welcome false, the same as per.
+  - `resumesAt` (string, required, nullable): While paused for its cap (pausedForCap): when its next period starts and it matches again. Null otherwise.
 - `comments` (object, required): Comments under this keyword's mentions: when enabled, the comments of every mention scored relevant are read from 30 minutes after the post, on a schedule per platform (for a day on Reddit, Hacker News and Bluesky, a week on GitHub, Stack Overflow and DEV, a month on YouTube) (new comments only, at most maxPerPost a thread, comments of fewer than three words dropped), on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit. List them with GET /v1/mentions/{id}/comments.
   - `enabled` (boolean, required): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
   - `maxPerPost` (integer, required): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
@@ -503,8 +509,9 @@ The group the keyword belongs to.
     - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
       - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
       - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
-  - `cap` (object, nullable): Replaces the monthly mention cap; null removes it. A cap above this month's count resumes a capped keyword at once, one at or under it pauses it.
-    - `mentions` (integer, required): Charged items allowed per calendar month (UTC): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+  - `cap` (object, nullable): Replaces the mention cap and its period (per, default month); null removes it. A cap above the current period's count resumes a capped keyword at once, one at or under it pauses it.
+    - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+    - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
   - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
     - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
     - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
