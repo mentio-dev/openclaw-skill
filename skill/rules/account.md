@@ -455,6 +455,8 @@ Returns: 200, an object:
   - `enabled` (boolean, required): Charge the saved card automatically when the balance runs low.
   - `thresholdCents` (integer, required): Charge when the effective balance drops under this.
   - `amountCents` (integer, required): How much to add per automatic charge (same bounds as a manual top-up).
+  - `weeklyLimitCents` (integer, required, nullable): Most the saved card may be charged automatically over any 7 days, before tax; null = no limit.
+  - `spentThisWeekCents` (integer, required): What counts against the weekly limit over the last 7 days, before tax: automatic charges made plus any still settling.
   - `lastRunAt` (string, required, nullable): Newest successful automatic charge.
   - `lastError` (string, required, nullable): Why the last automatic charge failed; null after a success.
 
