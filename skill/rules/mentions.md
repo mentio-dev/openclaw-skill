@@ -82,7 +82,7 @@ Query:
 - `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
-- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
+- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -96,7 +96,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
-- `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
@@ -111,7 +111,7 @@ Query:
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `subreddits` (array of string, nullable): Only Reddit posts from any of these subreddits: subreddits=SaaS,startups (names without the r/, any case). Every other post fails it. Repeatable, or comma-separated.
 - `notSubreddits` (array of string, nullable): Never Reddit posts from these subreddits; posts from other platforms still pass.
-- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
+- `notTags` (array of string, nullable): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
@@ -198,7 +198,7 @@ Query:
 - `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
-- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
+- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -212,7 +212,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
-- `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
@@ -227,7 +227,7 @@ Query:
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `subreddits` (array of string, nullable): Only Reddit posts from any of these subreddits: subreddits=SaaS,startups (names without the r/, any case). Every other post fails it. Repeatable, or comma-separated.
 - `notSubreddits` (array of string, nullable): Never Reddit posts from these subreddits; posts from other platforms still pass.
-- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
+- `notTags` (array of string, nullable): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
@@ -261,7 +261,7 @@ Query:
 - `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
-- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default.
+- `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -275,7 +275,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
-- `tags` (array of string, nullable): Only authors your workspace tagged with any of these (exact, case-sensitive). Repeatable, or comma-separated.
+- `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
@@ -290,7 +290,7 @@ Query:
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
 - `subreddits` (array of string, nullable): Only Reddit posts from any of these subreddits: subreddits=SaaS,startups (names without the r/, any case). Every other post fails it. Repeatable, or comma-separated.
 - `notSubreddits` (array of string, nullable): Never Reddit posts from these subreddits; posts from other platforms still pass.
-- `notTags` (array of string, nullable): Never authors your workspace tagged with any of these.
+- `notTags` (array of string, nullable): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
 - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
@@ -346,8 +346,8 @@ Body (JSON):
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1).
   - `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
-  - `notTags` (array of string): Never authors tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
   - `notLinkHosts` (array of string): Never posts linking to these hosts.
   - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.
@@ -415,8 +415,8 @@ Body (JSON):
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1).
   - `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
-  - `notTags` (array of string): Never authors tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
   - `notLinkHosts` (array of string): Never posts linking to these hosts.
   - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.
@@ -500,7 +500,7 @@ Returns: 204, no body.
   - `url` (string, required, nullable): Profile URL.
   - `avatarUrl` (string, required, nullable): Profile picture; null where the platform has none.
   - `followers` (integer, required, nullable): Follower count as of their newest post; null where the platform has none.
-  - `tags` (array of string, required): Your workspace tags on this person.
+  - `tags` (array of string, required): Your tags on this person: the workspace's, then those the mention's own keyword group gave them (set with groupId on /v1/people), each once.
 - `review` (object, required, nullable): An app store review's facts; null for every other post. Its sentiment comes from the stars (4 and 5 positive, 3 neutral, 1 and 2 negative) and it always counts as relevant, since you chose the app.
   - `rating` (integer, required): Stars the reviewer gave.
   - `ratingMax` (integer, required): The top of the scale: 5 on both stores.
@@ -616,8 +616,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1).
 - `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
-- `tags` (array of string): Only authors your workspace tagged with any of these.
-- `notTags` (array of string): Never authors tagged with any of these.
+- `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+- `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
 - `notLinkHosts` (array of string): Never posts linking to these hosts.
 - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.
@@ -672,8 +672,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1).
   - `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
-  - `notTags` (array of string): Never authors tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
   - `notLinkHosts` (array of string): Never posts linking to these hosts.
   - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.

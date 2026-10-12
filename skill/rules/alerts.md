@@ -97,7 +97,7 @@ Body (JSON):
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
@@ -158,7 +158,7 @@ Body (JSON): Omitted fields are untouched.
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.
@@ -437,8 +437,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
 - `languages` (array of string): Only posts in any of these languages (ISO 639-1).
 - `notLanguages` (array of string): Never posts in these languages; an unknown language still passes.
-- `tags` (array of string): Only authors your workspace tagged with any of these.
-- `notTags` (array of string): Never authors tagged with any of these.
+- `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+- `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
 - `notLinkHosts` (array of string): Never posts linking to these hosts.
 - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.
@@ -484,7 +484,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
-  - `tags` (array of string): Only authors your workspace tagged with any of these.
+  - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `automated` (boolean): true: only posts that read as machine-made (bots, templated posts); false: only the rest. Omit for both.

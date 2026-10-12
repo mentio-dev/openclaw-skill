@@ -60,7 +60,7 @@ CLI: `mentio people:list`
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on this platform.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
@@ -93,7 +93,7 @@ Returns: 200, `{ data: Person[], total }` (see Shapes below).
 
 ### GET /v1/people/{id}
 
-**Get a person.** One person as your workspace sees them. An account merged into someone resolves to that person. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**Get a person.** One person as your workspace sees them. An account merged into someone resolves to that person. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:get`
 
@@ -103,13 +103,13 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 200, a `Person` (see Shapes below).
 
 ### PATCH /v1/people/{id}
 
-**Update your annotations on a person.** Tags, notes, mute, and the outreach owner (a workspace member; null clears) and stage, for your workspace only. Mute hides their posts from your feed and every channel; ingest and billing never change. With `groupId` the annotations are that keyword group's own; `muted` is not supported there yet and is a 400.
+**Update your annotations on a person.** Tags, notes, mute, and the outreach owner (a workspace member; null clears) and stage, for your workspace only. Mute hides their posts from your feed and every channel; ingest and billing never change. With `groupId` the annotations are that keyword group's own: `muted` hides the person, and the accounts that group merged into them, from the mentions of that group's keywords only (feed, alerts and digests), and the group's tags show on those mentions next to the workspace's. A mute set without `groupId` hides them everywhere.
 
 CLI: `mentio people:update`
 
@@ -119,13 +119,13 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Body (JSON): Omitted fields are untouched.
 
 - `tags` (array of string): Replaces the whole list.
 - `notes` (string)
-- `muted` (boolean)
+- `muted` (boolean): true hides their posts from the feed, the alerts and the digests; false shows them again. Without groupId, for every keyword of the workspace; with groupId, for the mentions of that group's keywords only, leaving the workspace's mute as it is.
 - `ownerId` (string, nullable): The member who owns the contact (user id); null clears.
 - `stage` (string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
 
@@ -133,7 +133,7 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### GET /v1/people/{id}/activities
 
-**List outreach activities.** Every logged contact with this person across all their accounts, newest first (at most 200): who reached out, the channel, when, and a short note. Read it before reaching out so two teammates never contact the same person without knowing. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**List outreach activities.** Every logged contact with this person across all their accounts, newest first (at most 200): who reached out, the channel, when, and a short note. Read it before reaching out so two teammates never contact the same person without knowing. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:activities`
 
@@ -143,13 +143,13 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/people/{id}/activities
 
-**Log an outreach activity.** Record that a teammate reached out to this person: an email, a DM, a call. The first activity claims an unowned person for whoever reached out and moves not_contacted to contacted; an existing owner and a later stage are kept. `memberId` defaults to the signed-in member; an API key that omits it logs an unattributed activity, which claims nobody. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**Log an outreach activity.** Record that a teammate reached out to this person: an email, a DM, a call. The first activity claims an unowned person for whoever reached out and moves not_contacted to contacted; an existing owner and a later stage are kept. `memberId` defaults to the signed-in member; an API key that omits it logs an unattributed activity, which claims nobody. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:log-activity`
 
@@ -159,7 +159,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Body (JSON):
 
@@ -172,7 +172,7 @@ Returns: 201, a `PersonActivity` (see Shapes below).
 
 ### DELETE /v1/people/{id}/activities/{activityId}
 
-**Delete an outreach activity.** Remove a contact logged by mistake. The person's owner and stage stay as they are. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**Delete an outreach activity.** Remove a contact logged by mistake. The person's owner and stage stay as they are. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:delete-activity`
 
@@ -183,13 +183,13 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 204, no body.
 
 ### POST /v1/people/{id}/merge
 
-**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only. Their mentions, tags, notes and outreach activities combine under the person named by `into`, which keeps its owner and stage unless it had none. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only. Their mentions, tags, notes and outreach activities combine under the person named by `into`, which keeps its owner and stage unless it had none. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:merge`
 
@@ -199,7 +199,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Body (JSON):
 
@@ -209,7 +209,7 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### POST /v1/people/{id}/split
 
-**Undo a merge.** The account becomes its own person again. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, merges and activities, apart from the workspace's and from every other group's.
+**Undo a merge.** The account becomes its own person again. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
 
 CLI: `mentio people:split`
 
@@ -219,7 +219,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 200, a `Person` (see Shapes below).
 
@@ -231,7 +231,7 @@ CLI: `mentio people:export`
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on this platform.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
@@ -268,7 +268,7 @@ CLI: `mentio segments:list`
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 200, `{ data: Segment[], presets }` (see Shapes below).
 
@@ -280,7 +280,7 @@ CLI: `mentio segments:create`
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Body (JSON):
 
@@ -320,7 +320,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 200, a `Segment` (see Shapes below).
 
@@ -336,7 +336,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Body (JSON): Omitted fields are untouched.
 
@@ -376,7 +376,7 @@ Path:
 
 Query:
 
-- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, merges, activities and segments. Omit for the whole workspace.
+- `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
 
 Returns: 204, no body.
 
@@ -422,7 +422,7 @@ Returns: 204, no body.
 - `annotations` (object, required): What this workspace wrote about the person.
   - `tags` (array of string, required)
   - `notes` (string, required)
-  - `muted` (boolean, required): Their posts stay out of the feed and every channel; ingest and billing are untouched.
+  - `muted` (boolean, required): Their posts stay out of the feed and every channel; ingest and billing are untouched. Read with groupId it is that group's own mute, which hides them from the mentions of that group's keywords only.
 - `outreach` (object, required): Where your workspace stands with the person. The first logged activity claims an unowned person for whoever reached out and moves not_contacted to contacted.
   - `owner` (object, required, nullable): The teammate who owns the contact; null when nobody does, or the owner left the workspace.
     - `id` (string, required): User id of the workspace member.
