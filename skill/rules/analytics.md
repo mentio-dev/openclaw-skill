@@ -51,7 +51,7 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `subreddit`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out), language (ISO 639-1; "unknown" for posts without one), subreddit (Reddit posts only, most active first; `share` stays a percent of the whole window, every platform included).
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out), language (ISO 639-1; "unknown" for posts without one), country (where the author is, ISO 3166-1 alpha-2; "unknown" for posts without one), subreddit (Reddit posts only, most active first; `share` stays a percent of the whole window, every platform included).
 
 Returns: 200, a `AnalyticsBreakdown` (see Shapes below).
 
@@ -139,7 +139,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `to` (string, required): Last day, inclusive.
   - `days` (integer, required): Length of the window in days.
   - `timezone` (string, required): IANA zone the days were cut in.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `subreddit`. The dimension the rows are grouped by.
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension the rows are grouped by.
 - `data` (array of object, required): Most matched first, at most 50 groups. by=hour is chronological and unlimited (168 cells at most).
   - `key` (string, required): The group: platform name, keyword id, sentiment, intent, status, "weekday-hour" for by=hour, an opaque person key, or the subreddit in lowercase.
   - `label` (string, required): Readable name: the keyword term, the person name, the subreddit as Reddit spells it, otherwise the key.
