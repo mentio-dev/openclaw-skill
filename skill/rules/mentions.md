@@ -84,6 +84,7 @@ Query:
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
+- `includeHidden` (boolean): true: include mentions their keyword's display lists hide (a language or country it does not show), hidden by default.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -187,7 +188,7 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### GET /v1/mentions/export.csv
 
-**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only), title and image_url (where the platform has them), duplicate_of (the mention a cross-post copies; the CSV keeps one row per mention, copies included, so it adds up to the bill), kind (post, comment or repository), parent_url (the post a comment answers), comments (comments of it delivered to you), subreddit and flair (Reddit only), country (where the author is, ISO 3166-1 alpha-2, empty when unknown) and organization (true when a company or organization posted). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only), title and image_url (where the platform has them), duplicate_of (the mention a cross-post copies; the CSV keeps one row per mention, copies included; with includeHidden=true, the mentions a keyword hides by language or country too, it adds up to the bill), kind (post, comment or repository), parent_url (the post a comment answers), comments (comments of it delivered to you), subreddit and flair (Reddit only), country (where the author is, ISO 3166-1 alpha-2, empty when unknown) and organization (true when a company or organization posted). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
 
 CLI: `mentio mentions:export`
 
@@ -203,6 +204,7 @@ Query:
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
+- `includeHidden` (boolean): true: include mentions their keyword's display lists hide (a language or country it does not show), hidden by default.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -269,6 +271,7 @@ Query:
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
 - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
+- `includeHidden` (boolean): true: include mentions their keyword's display lists hide (a language or country it does not show), hidden by default.
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
@@ -534,8 +537,8 @@ Returns: 204, no body.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
   - `intents` (array of string, required): Intent and topic tags: buy_intent, question, complaint, praise, comparison, churn_intent (leaving or replacing the keyword), bug_report, pricing, hiring, event, promotional, testimonial (a customer vouching for it from their own use), industry_insight (analysis or data about the field), launch (a product or feature launch announcement), feedback (a suggestion or request about it).
   - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
-  - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown or classified before languages were recorded.
-  - `country` (string, required, nullable): Where the author is, as a lowercase ISO 3166-1 alpha-2 code (us, in, de): the classifier's reading of the author's profile location and the post. A best guess, not a fact the platform gave; null when nothing tells, or classified before countries were recorded.
+  - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown, not one of the 20 the classifier names, or classified before languages were recorded.
+  - `country` (string, required, nullable): Where the author is, as a lowercase ISO 3166-1 alpha-2 code (us, in, de): the classifier's reading of the author's profile location and the post. A best guess, not a fact the platform gave; null when nothing tells, when it is not one of the 60 the classifier names, or when classified before countries were recorded.
   - `organization` (boolean, required): The author is a company, brand or organization account rather than a person: a LinkedIn company page, a GitHub organization, an account that speaks for a business. A label only, like automated. false while unjudged.
   - `confidence` (number, required, nullable): How sure the classifier is of its relevance verdict, 0 to 1. null when the verdict came without one: the fallback model judged, or the row was scored before confidence was recorded.
   - `uncertain` (boolean, required): The verdict deserves a human look: confidence under 0.4, or the model that wrote the note disagreed with the verdict. A flag for reviewers; it never hides a mention.
