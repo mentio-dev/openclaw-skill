@@ -11,13 +11,13 @@ npm install -g @mentio-dev/cli        # or run without installing: npx -y @menti
 mentio auth:check                     # which workspace the key belongs to
 mentio keywords:list --table
 mentio keywords:create --term "acme" --kind brand --platforms reddit,hackernews
-mentio mentions:search --relevant true --sentiment negative --limit 20
+mentio mentions:search --relevant true --sentiments negative --limit 20
 mentio mentions:update mm_7f3a... --status done --note "Replied in thread"
 mentio people:list --sort reach --limit 10
 mentio analytics:summary --range 7d --compare true --timezone Europe/Madrid
 mentio channels:create --kind webhook --url https://example.com/hooks/mentio
 mentio alerts:create --name "Buying signals" --mode instant --event mention.buy_intent --filter '{"intents":["buy_intent"]}' --channelIds dest_...
-mentio mentions:export --since 2026-09-01 --out mentions.csv
+mentio mentions:export --from 2026-09-01 --out mentions.csv
 ```
 
 Ids are positional; every other input is a flag named as in the API. Every flag takes a value, booleans included (`--muted false`); lists are comma-separated; nested objects are JSON; the literal `null` clears a nullable field (`--note null`). A whole body can go in `--json '{...}'`. Errors go to stderr as the error envelope with exit code 1.

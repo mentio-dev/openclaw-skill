@@ -77,7 +77,7 @@ curl -sS "https://api.mentio.dev/v1/health"
 | `GET` | `/v1/members/invitations` | `mentio members:invitations` | List pending invitations |
 | `POST` | `/v1/members/invitations` | `mentio members:invite` | Invite a member |
 | `DELETE` | `/v1/members/invitations/{id}` | `mentio members:revoke-invitation` | Revoke an invitation |
-| `GET` | `/v1/health` | `mentio system:health` | getHealth |
+| `GET` | `/v1/health` | `mentio system:health` | Check the API is up |
 
 ### GET /v1/company
 
@@ -234,7 +234,7 @@ CLI: `mentio billing:ledger`
 Query:
 
 - `cursor` (string): Opaque cursor from a previous page (`nextCursor`).
-- `limit` (integer): Page size, 1 to 100 (default 25).
+- `limit` (integer): Page size, 1 to 100 (default 50).
 
 Returns: 200, a `LedgerList` (see Shapes below).
 
@@ -323,6 +323,8 @@ Path:
 Returns: 204, no body.
 
 ### GET /v1/health
+
+**Check the API is up.**
 
 CLI: `mentio system:health`
 

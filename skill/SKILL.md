@@ -29,7 +29,7 @@ When the `mentio` CLI is on the PATH (`command -v mentio`), prefer it: it reads 
 
 ```bash
 # Read
-curl -sS "https://api.mentio.dev/v1/mentions?relevant=true&sentiment=negative&limit=20" \
+curl -sS "https://api.mentio.dev/v1/mentions?relevant=true&sentiments=negative&limit=20" \
   -H "Authorization: Bearer $MENTIO_API_KEY"
 
 # Write

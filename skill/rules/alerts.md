@@ -367,9 +367,10 @@ Path:
 
 Query:
 
-- `limit` (integer)
+- `cursor` (string): Opaque cursor from a previous page (`nextCursor`).
+- `limit` (integer): How many deliveries, newest first, 1 to 200 (default 50).
 
-Returns: 200, a `InvoiceList` (see Shapes below).
+Returns: 200, a `LedgerList` (see Shapes below).
 
 ### POST /v1/channels/{id}/rotate-secret
 
@@ -469,7 +470,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
 - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
-- `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `notAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `excludeAuthors` (array of string): Deprecated: use notAuthors, the same filter. Both may be given; every author named in either is hidden.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
 - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
@@ -622,6 +624,19 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 
 One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kind` tells them apart (`slack`, `email`, `webhook`, `telegram`).
 
+### LedgerList
+
+- `data` (array of object, required): Ledger entries, newest first.
+  - `id` (string, required): Ledger entry id (led_...).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments or adjustment.
+  - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
+  - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
+  - `note` (string, required, nullable): Free text on credits and adjustments.
+  - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
+  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
+- `nextCursor` (string, required, nullable): Pass it back as `cursor` for the next page; null on the last.
+
 ### AttentionItem
 
 - `id` (string, required): Attention item id (att_...).
@@ -726,16 +741,3 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kin
 - `detail` (string, required, nullable): What the last failed read saw, in a few words.
 - `failingSince` (string, required): When it started failing: the third failed read in a row.
 - `keywordsAffected` (integer, required): Live keywords of the workspace that read workspace feeds: what misses its posts while it fails.
-
-### LedgerList
-
-- `data` (array of object, required): Ledger entries, newest first.
-  - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments or adjustment.
-  - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
-  - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
-  - `note` (string, required, nullable): Free text on credits and adjustments.
-  - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
-  - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-- `nextCursor` (string, required, nullable): Pass it back as `cursor` for the next page; null on the last.

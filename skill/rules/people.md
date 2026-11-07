@@ -63,12 +63,16 @@ CLI: `mentio people:list`
 Query:
 
 - `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on this platform.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
-- `tag` (string): Only people carrying this tag (exact, case-sensitive).
+- `tag` (string): Deprecated: use tags. Only people carrying this tag (exact, case-sensitive); combines with tags as either.
 - `muted` (boolean): true: only muted people; false: only unmuted; omitted: everyone.
-- `since` (string): Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
+- `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+- `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+- `since` (string): Deprecated: use from. Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
 - `segmentId` (string): A saved segment applied on top of every other filter here. Unknown id: 404.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): People carrying any of these tags. Repeatable, or comma-separated.
@@ -256,12 +260,16 @@ CLI: `mentio people:export`
 Query:
 
 - `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on this platform.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
-- `tag` (string): Only people carrying this tag (exact, case-sensitive).
+- `tag` (string): Deprecated: use tags. Only people carrying this tag (exact, case-sensitive); combines with tags as either.
 - `muted` (boolean): true: only muted people; false: only unmuted; omitted: everyone.
-- `since` (string): Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
+- `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+- `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+- `since` (string): Deprecated: use from. Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
 - `segmentId` (string): A saved segment applied on top of every other filter here. Unknown id: 404.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): People carrying any of these tags. Repeatable, or comma-separated.

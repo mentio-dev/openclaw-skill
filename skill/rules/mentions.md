@@ -78,12 +78,12 @@ CLI: `mentio mentions:search`
 
 Query:
 
-- `keywordId` (string): Only matches of this keyword.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from this platform.
+- `keywordId` (string): Deprecated: use keywordIds. Only matches of this keyword; combines with keywordIds as either.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. Only posts from this platform; combines with platforms as either.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
-- `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
+- `sentiment` (string): one of `positive`, `neutral`, `negative`. Deprecated: use sentiments. Only this sentiment; combines with sentiments as either.
+- `intent` (string): Deprecated: use intents. Only mentions carrying this intent or topic tag, combined with intents as either (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
@@ -92,7 +92,8 @@ Query:
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
-- `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `notAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `excludeAuthors` (array of string, nullable): Deprecated: use notAuthors, the same filter. Both may be sent; every author named in either is hidden.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
@@ -132,11 +133,15 @@ Query:
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
 - `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
-- `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
-- `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
+- `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+- `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+- `since` (string): Deprecated: use from. Only posts published at or after this instant (ISO 8601, or epoch ms).
+- `until` (string): Deprecated: use to. Only posts published at or before this instant (ISO 8601, or epoch ms).
 - `sort` (string): one of `newest`, `priority`. newest: by match time, newest first. priority: by attention score, highest first; priority ranks the last 30 days of matches only, older ones stay reachable under newest. Cursors are specific to a sort.
 - `cursor` (string): nextCursor from the previous page; pass the same filters and sort.
-- `limit` (integer): Page size, 1 to 100.
+- `limit` (integer): Page size, 1 to 100 (default 50).
 
 Returns: 200, a `LedgerList` (see Shapes below).
 
@@ -210,12 +215,12 @@ CLI: `mentio mentions:export`
 
 Query:
 
-- `keywordId` (string): Only matches of this keyword.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from this platform.
+- `keywordId` (string): Deprecated: use keywordIds. Only matches of this keyword; combines with keywordIds as either.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. Only posts from this platform; combines with platforms as either.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
-- `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
+- `sentiment` (string): one of `positive`, `neutral`, `negative`. Deprecated: use sentiments. Only this sentiment; combines with sentiments as either.
+- `intent` (string): Deprecated: use intents. Only mentions carrying this intent or topic tag, combined with intents as either (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
@@ -224,7 +229,8 @@ Query:
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
-- `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `notAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `excludeAuthors` (array of string, nullable): Deprecated: use notAuthors, the same filter. Both may be sent; every author named in either is hidden.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
@@ -264,8 +270,12 @@ Query:
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
 - `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
-- `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
-- `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
+- `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+- `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+- `since` (string): Deprecated: use from. Only posts published at or after this instant (ISO 8601, or epoch ms).
+- `until` (string): Deprecated: use to. Only posts published at or before this instant (ISO 8601, or epoch ms).
 
 Returns: 200, CSV text.
 
@@ -282,12 +292,12 @@ CLI: `mentio mentions:export-json`
 
 Query:
 
-- `keywordId` (string): Only matches of this keyword.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from this platform.
+- `keywordId` (string): Deprecated: use keywordIds. Only matches of this keyword; combines with keywordIds as either.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. Only posts from this platform; combines with platforms as either.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
-- `sentiment` (string): one of `positive`, `neutral`, `negative`. Only this sentiment.
-- `intent` (string): Only mentions carrying this intent or topic tag (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
+- `sentiment` (string): one of `positive`, `neutral`, `negative`. Deprecated: use sentiments. Only this sentiment; combines with sentiments as either.
+- `intent` (string): Deprecated: use intents. Only mentions carrying this intent or topic tag, combined with intents as either (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
 - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
 - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
 - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
@@ -296,7 +306,8 @@ Query:
 - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
 - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
 - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
-- `excludeAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `notAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+- `excludeAuthors` (array of string, nullable): Deprecated: use notAuthors, the same filter. Both may be sent; every author named in either is hidden.
 - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
 - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
 - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
@@ -336,8 +347,12 @@ Query:
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
 - `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
-- `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
-- `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
+- `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+- `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+- `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+- `since` (string): Deprecated: use from. Only posts published at or after this instant (ISO 8601, or epoch ms).
+- `until` (string): Deprecated: use to. Only posts published at or before this instant (ISO 8601, or epoch ms).
 
 Returns: 200, `{ data: Mention[], truncated }` (see Shapes below).
 
@@ -396,7 +411,8 @@ Body (JSON):
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
-  - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `notAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `excludeAuthors` (array of string): Deprecated: use notAuthors, the same filter. Both may be given; every author named in either is hidden.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
   - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
@@ -468,7 +484,8 @@ Body (JSON):
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
-  - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `notAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `excludeAuthors` (array of string): Deprecated: use notAuthors, the same filter. Both may be given; every author named in either is hidden.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
   - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
@@ -687,7 +704,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
 - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
 - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
-- `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `notAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+- `excludeAuthors` (array of string): Deprecated: use notAuthors, the same filter. Both may be given; every author named in either is hidden.
 - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
 - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
 - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
@@ -746,7 +764,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `maxFollowers` (integer): Only authors with at most this many followers; unknown reach never passes.
   - `isReply` (boolean): true: only replies and comments; false: only top-level posts.
   - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository).
-  - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `notAuthors` (array of string): Never these authors: display names, handles or profile URLs.
+  - `excludeAuthors` (array of string): Deprecated: use notAuthors, the same filter. Both may be given; every author named in either is hidden.
   - `ratings` (array of integer): Only app store reviews with any of these star ratings; every other post fails it.
   - `notRatings` (array of integer): Never reviews with these star ratings; posts that are not reviews still pass.
   - `minLikes` (integer): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
