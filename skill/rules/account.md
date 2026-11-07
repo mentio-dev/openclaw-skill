@@ -182,7 +182,7 @@ Query:
 - `to` (string): Last UTC day of a custom window, YYYY-MM-DD, inclusive; never after today. Needs `from`.
 - `keywordIds` (array of string, nullable): Only these keywords (kw_...), deleted ones included. Repeatable, or comma-separated.
 - `groupIds` (array of string, nullable): Only these groups (grp_...): a keyword-day by the group it was metered under, a mention or a comment by its keyword's group as it is now. Repeatable, or comma-separated.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. A keyword-day belongs to no platform, so with this filter the keyword line reads 0 and only mentions and comments count. Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. A keyword-day belongs to no platform, so with this filter the keyword line reads 0 and only mentions and comments count. Repeatable, or comma-separated.
 - `limit` (integer): Rows per page, 1 to 500 (default 100). Only by=keyword can outgrow a page; a window has at most 90 days and a dozen platforms.
 - `offset` (integer, nullable): Skip this many rows.
 
