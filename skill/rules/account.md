@@ -118,7 +118,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/api-keys
 
-**Create an API key.** Mint a key for this workspace. The key itself is returned once; only its hash is stored. `expiresAt` makes it stop working at an instant (a key for a contractor or a one-off script); it stays listed until revoked.
+**Create an API key.** Mint an API key for this workspace. The key itself is returned once; only its hash is stored.
+
+`expiresAt` makes it stop working at an instant (a key for a contractor or a one-off script); it stays listed until revoked.
 
 CLI: `mentio api-keys:create`
 
@@ -153,7 +155,9 @@ Returns: 204, no body.
 
 ### GET /v1/whoami
 
-**Introspect the credential.** The workspace this credential acts on, how the request authenticated (an API key, an OAuth access token from an MCP sign-in, or the dashboard session), whether it may write, and for a key its id and expiry. Run it first: a read key answers 403 read_only_key on every write, and a wrong workspace is the classic scripting mistake.
+**Introspect the credential.** Show the workspace this credential acts on, how it authenticated, whether it may write, and a key's id and expiry.
+
+Run it first: a read key answers 403 read_only_key on every write.
 
 CLI: `mentio auth:whoami`
 
@@ -161,7 +165,9 @@ Returns: 200, a `Whoami` (see Shapes below).
 
 ### GET /v1/usage
 
-**Get usage and balance.** The prepaid balance (ledger, pending mention charges, and the effective balance the stop rule reads), the daily burn and the days it buys, the keywords the wallet runs and pauses, the matches recorded today and over 30 days, and whether tracking is stopped or the balance is low. Every matched mention bills ($0.008), relevant or not; every active keyword bills $5 a month, charged daily.
+**Get usage and balance.** Read the balance, daily burn, keywords running and paused, and recent matches: the short form of GET /v1/billing/wallet.
+
+Every matched mention bills $0.008, relevant or not; every active keyword $5 a month, charged daily. See [Billing](/billing).
 
 CLI: `mentio usage:get`
 
@@ -169,7 +175,12 @@ Returns: 200, a `UsageSummary` (see Shapes below).
 
 ### GET /v1/usage/breakdown
 
-**Get the usage breakdown.** What the workspace consumed and was charged over a window, grouped by one dimension per call (`by`: day, platform or keyword), in USD cents at list price, with the window's totals on every call. `range` reads a trailing window of UTC days ending today (default 30d); `month` reads one calendar month (YYYY-MM), the shape a bill or a per-customer margin is reconciled against. Keyword-days come from the daily tick and mention charges from the matches that billed, so a deleted keyword keeps its charges in the keyword rows (`keyword.removed`) while its mention counts read 0; the same numbers ride on each keyword as `stats.cost` for the running month. `totals.ledgerDebitCents` is what the wallet has debited so far for the window's days: mentions settle the morning after their day, so a window ending today lags `totals.totalCents` by the unsettled ones, and a closed month differs from it only by cumulative rounding. Rows are paged (`limit`, `offset`, `total`); a workspace may read this at most 30 times a minute through its keys and tokens together.
+**Get the usage breakdown.** Report what the workspace was charged over a window at list price, grouped by one dimension (`by`).
+
+- Rows are paged; the window's totals come on every call.
+- 30 reads a minute per workspace.
+
+See [Cost per keyword](/billing#cost-per-keyword).
 
 CLI: `mentio usage:breakdown`
 
@@ -190,7 +201,9 @@ Returns: 200, a `UsageBreakdown` (see Shapes below).
 
 ### GET /v1/billing/invoices
 
-**List receipts.** The orders behind the top-ups, newest first, as the merchant of record (Polar) holds them: this workspace's share of the billing customer's newest 100 orders. Empty before the first top-up.
+**List receipts.** List the top-up orders, newest first, as Polar (the merchant of record) holds them.
+
+This workspace's share of the billing customer's newest 100 orders; empty before the first top-up.
 
 CLI: `mentio billing:invoices`
 
@@ -212,7 +225,9 @@ Returns: 200, an object:
 
 ### GET /v1/billing/ledger
 
-**List ledger entries.** Every movement of the balance, newest first: the welcome credit, top-ups, refunds, the daily keyword-day and mention debits, adjustments. A debit row carries the UTC day it settled and the cumulative units behind it. Cursor paged.
+**List ledger entries.** List every movement of the balance, newest first, cursor paged.
+
+Rows are the welcome credit, top-ups, refunds, the daily keyword-day and mention debits, and adjustments. A debit row carries the UTC day it settled and the cumulative units behind it.
 
 CLI: `mentio billing:ledger`
 
@@ -225,7 +240,9 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### POST /v1/billing/top-ups
 
-**Create a top-up checkout.** Returns a hosted checkout URL with `amountCents` prefilled (editable there, $20 to $5,000). The balance is credited when the payment lands, within a minute, and tracking the wallet had paused resumes at once. Nothing is charged by this call itself. `successUrl` must be on an origin this deployment trusts; omit it for the dashboard's billing page.
+**Create a top-up checkout.** Get a hosted checkout URL for a top-up; this call charges nothing.
+
+The balance is credited within a minute of payment, and paused tracking resumes. `successUrl` must be on a trusted origin; omit it for the dashboard.
 
 CLI: `mentio billing:top-up`
 
@@ -240,7 +257,9 @@ Returns: 200, an object:
 
 ### GET /v1/billing/wallet
 
-**Get the wallet.** The prepaid balance in full: ledger, pending mention charges and the effective balance the stop rule reads, the daily burn and the days it buys, how many keywords run and how many the wallet paused, what a day costs and what a resume needs, the welcome credit, the newest top-up, the top-up bounds and the auto-recharge settings. `GET /v1/usage` is the short form.
+**Get the wallet.** Read the prepaid balance in full; GET /v1/usage is the short form.
+
+It adds what a day costs, what a resume needs, the welcome credit, the newest top-up, top-up bounds and auto-recharge settings.
 
 CLI: `mentio billing:wallet`
 
@@ -256,7 +275,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### DELETE /v1/members/{id}
 
-**Remove a member.** The person loses the workspace within a minute (their dashboard session on the next request, an OAuth token when its short cache lapses). Their mentions, notes and outreach stay. Needs a signed-in owner or admin; only an owner removes another owner, and the last owner cannot be removed (409 last_owner).
+**Remove a member.** Remove a member; access ends within a minute, while their mentions, notes and outreach stay.
+
+Needs a signed-in owner or admin; only an owner removes an owner, and never the last (409 last_owner).
 
 CLI: `mentio members:remove`
 
@@ -276,7 +297,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/members/invitations
 
-**Invite a member.** Send an email invitation to join the workspace as admin or member; it expires after 48 hours. Idempotent: an address that already holds an open invitation gets it back with 200 and no second email. An address that is already a member is a 409 already_member. Team changes need a signed-in owner or admin (an OAuth token from an MCP sign-in, or the dashboard session): an API key answers 403.
+**Invite a member.** Invite someone by email as admin or member; the invitation expires after 48 hours.
+
+Idempotent for an open invitation (200, no second email); a member is 409 already_member. Needs a signed-in owner or admin: API keys get 403.
 
 CLI: `mentio members:invite`
 
@@ -386,13 +409,13 @@ Returns: 200, an object:
   - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
   - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
   - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
-  - `unclassifiedMentions` (integer, required): Matches recorded in the window that are never charged: no score yet (still being scored, or classification failed), or a free review from the look-back of a newly connected app. Every other match is charged, on the mentions line or, for a comment, on the comments line.
+  - `unclassifiedMentions` (integer, required): Matches in the window that are never charged: not scored yet, classification failed, or a free review from a new app's look-back. Every other match is charged, on the mentions or comments line.
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
   - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
-  - `ledgerDebitCents` (integer, required): What the ledger has debited so far for the days of the window, each debit by the day it settled, for the whole workspace whatever the filters. Mentions settle the morning after their day, so a window ending today lags totalCents by today's mentions (and yesterday's before the tick at 00:05 UTC); a closed month differs from totalCents only by cumulative rounding.
-  - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row can claim them. Charged all the same. Comments carry their keyword and platform on the billed row, so they are never unattributed (by=group puts a deleted keyword's comments on the no-group row).
+  - `ledgerDebitCents` (integer, required): What the ledger has debited for the window's days, by the day each debit settled, for the whole workspace whatever the filters. Lags totalCents by unsettled mentions; see [The ledger](/billing#the-ledger).
+  - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row claims them; charged all the same. Comments never are (by=group puts a deleted keyword's comments on the no-group row).
 - `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
   - `key` (string, required): The row's key: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword, the group id for by=group.
   - `label` (string, required): Readable name: the keyword term or the group name, otherwise the key.
@@ -404,11 +427,11 @@ Returns: 200, an object:
     - `id` (string, required): Group id, or "none" for keyword-days metered before groups existed whose keyword is gone.
     - `name` (string, required): The group's name as it reads now, or "Deleted group" / "No group".
     - `removed` (boolean, required): The group has since been deleted.
-  - `keywordDays` (integer, required, nullable): Keyword-days metered in this group: the days the daily tick charged for. Null for by=platform (a keyword-day belongs to no platform) and for a day before the first recorded tick (unknown, not zero); a keyword row counts only the days on record, so before window.keywordDaysFrom it is a floor, not a zero.
+  - `keywordDays` (integer, required, nullable): Keyword-days the daily tick charged in this row. Null for by=platform and for days before the first recorded tick (unknown, not zero); before window.keywordDaysFrom a keyword row is a floor.
   - `keywordCents` (integer, required): The keyword-days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
   - `matchedMentions` (integer, required): Matches recorded in the window, relevant or not.
   - `billableMentions` (integer, required): Of the matches billed in the window (every scored match, relevant or not), the ones in this group.
-  - `unclassifiedMentions` (integer, required): Matches recorded in the window that are never charged: no score yet (still being scored, or classification failed), or a free review from the look-back of a newly connected app. Every other match is charged, on the mentions line or, for a comment, on the comments line.
+  - `unclassifiedMentions` (integer, required): Matches in the window that are never charged: not scored yet, classification failed, or a free review from a new app's look-back. Every other match is charged, on the mentions or comments line.
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.

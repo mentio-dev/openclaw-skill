@@ -78,7 +78,12 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/alerts
 
-**Create an alert.** A rule (what to watch, the filter) times channels. mode instant sends each matching mention as it happens; hourly sends one digest every UTC hour (five minutes past) for the previous full hour, nothing when it had no mention over the rule's floor, to Slack, Telegram and webhook channels only (no schedule); daily sends one digest at schedule.hour in schedule.timezone; weekly sends one a week on schedule.weekday (0 Sunday to 6 Saturday). filter.anyOf adds OR: groups of conditions in the vocabulary of the mentions list, at least one of which must hold on top of the rest of the filter.
+**Create an alert.** Create an alert: a rule (what to watch) sent to channels.
+
+- `mode`: instant, or hourly, daily or weekly digests; hourly never emails.
+- `filter.anyOf` adds OR groups of conditions.
+
+See [Alerts](/alerts).
 
 CLI: `mentio alerts:create`
 
@@ -91,7 +96,7 @@ Body (JSON):
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
-  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
@@ -112,7 +117,7 @@ Body (JSON):
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object): Required for daily and weekly alerts (weekly ones also need schedule.weekday). Hourly alerts take none: they send every UTC hour, so a time of day and a zone are ignored and a weekday is refused.
   - `hour` (integer, required)
   - `minute` (integer)
@@ -155,7 +160,7 @@ Body (JSON): Omitted fields are untouched.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
-  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
@@ -176,7 +181,7 @@ Body (JSON): Omitted fields are untouched.
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object, nullable): Daily and weekly alerts. Ignored on an hourly one, except a weekday, which is refused.
   - `hour` (integer, required)
   - `minute` (integer)
@@ -202,7 +207,9 @@ Returns: 204, no body.
 
 ### POST /v1/alerts/{id}/mute
 
-**Mute authors on an alert.** Add authors to the alert's muted list without touching the rest of its filter. Links are read the way the dashboard reads them: a post link mutes its author, twitter.com becomes x.com, a Hacker News profile keeps its id. Authors already muted are skipped, so a retry is safe. An entry that names no person (a subreddit, a story) rejects the request with that entry named.
+**Mute authors on an alert.** Add authors to the alert's muted list, leaving the rest of its filter.
+
+A post link mutes its author; already muted authors are skipped, so retries are safe. An entry naming no person (a subreddit) is a 400. See [Alerts](/alerts#mute-authors).
 
 CLI: `mentio alerts:mute`
 
@@ -228,7 +235,7 @@ Path:
 
 Returns: 200, an object:
 
-- `skipped` (string, required, nullable): one of `already_sent`, `empty`, `expired`, `in_flight`. Why nothing was sent, if nothing was: the period already went out, the window had nothing to show, (hourly rules) the hour's retry window closed before it could send, or another run of the same period is sending it right now.
+- `skipped` (string, required, nullable): one of `already_sent`, `empty`, `expired`, `in_flight`. Why nothing was sent: the period already went out, nothing to show, an hourly retry window closed, or another run is sending it now.
 - `matched` (integer, required)
 - `relevant` (integer, required)
 - `outcomes` (array of object, required)
@@ -255,7 +262,9 @@ Returns: 200, an object:
 
 ### POST /v1/alerts/{id}/unmute
 
-**Unmute authors on an alert.** Remove authors from the alert's muted list without touching the rest of its filter. Name each one by the stored entry or by any link to that profile or its posts. Authors that are not muted are ignored, so a retry is safe.
+**Unmute authors on an alert.** Remove authors from the alert's muted list without touching the rest of its filter.
+
+Name each one by the stored entry or by any link to that profile or its posts. Authors that are not muted are ignored, so a retry is safe.
 
 CLI: `mentio alerts:unmute`
 
@@ -330,7 +339,7 @@ Body (JSON): Omitted fields are untouched.
 - `label` (string)
 - `url` (string): Webhooks only.
 - `headers` (object): Webhooks only; replaces the whole set.
-- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the whole set of account events the channel receives. A webhook takes any of them; a Slack, email or Telegram channel the attention events only (mention.spike, sentiment.negative_spike, keyword.noisy, channel.failing, feed.failing, feed.recovered). An empty list unsubscribes it from all of them.
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email and Telegram take the attention events only. See [Account events](/webhooks/account-events).
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -393,7 +402,9 @@ Returns: 200, an object:
 
 ### GET /v1/attention
 
-**List attention items.** What needs a person, newest first: a keyword whose mentions spiked in the last hour (mention.spike), whose negative share of the last 24 hours jumped (sentiment.negative_spike), that turned noisy (keyword.noisy), or a channel whose last sends all failed (channel.failing). Detected once an hour; an item opens when its condition starts and resolves on its own when the condition is gone. Open items by default; `status=all` reads the history. Each opening is also an account event of the same name, which webhook, Slack, email and Telegram channels can subscribe to.
+**List attention items.** List what needs a person, newest first: mention spikes, negative sentiment jumps, noisy keywords and failing channels.
+
+Checked hourly; items resolve on their own. Open items by default, `status=all` for history. Each opening is also an account event. See [Attention](/guides/attention).
 
 CLI: `mentio attention:list`
 
@@ -408,7 +419,9 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### POST /v1/attention/{id}/dismiss
 
-**Dismiss an attention item.** Put an item away. It leaves the open list and does not come back while its condition lasts; once the condition clears, a new episode may open a new item. Idempotent.
+**Dismiss an attention item.** Put an attention item away. Idempotent.
+
+It leaves the open list and does not come back while its condition lasts. Once the condition clears, a new episode may open a new item.
 
 CLI: `mentio attention:dismiss`
 
@@ -482,12 +495,17 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `id` (string, required): Alert id (feed_...).
 - `name` (string, required)
 - `enabled` (boolean, required)
-- `mode` (string, required): one of `instant`, `hourly`, `daily`, `weekly`. instant: each matching mention as it happens. hourly: one digest each UTC hour (five minutes past, so the last mentions of the hour are scored) covering the previous full hour, nothing when that hour has no mention at or over the rule's relevance floor; Slack, Telegram and webhook channels only. daily: one digest at the scheduled local time. weekly: one digest a week, on schedule.weekday.
+- `mode` (string, required): one of `instant`, `hourly`, `daily`, `weekly`. When it sends; see [Alerts](/alerts).
+
+- instant: each matching mention as it happens.
+- hourly: the previous UTC hour, at five past; never email.
+- daily: one digest at the scheduled local time.
+- weekly: one digest a week, on schedule.weekday.
 - `filter` (object, required)
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
-  - `minRelevance` (integer): The rule's relevance floor. Absent, it sends relevant mentions only (scored 40 and up, the classifier's line); lower, down to 0, it also receives the matches the classifier scored as noise; higher, it hears less. Email channels keep the 40 line whatever the rule says. Unclassified mentions never pass.
+  - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `intents` (array of string): At least one of these intent or topic tags.
@@ -508,7 +526,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object, required, nullable): Daily and weekly alerts only; null for instant and hourly ones.
   - `hour` (integer, required)
   - `minute` (integer)
@@ -607,7 +625,12 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kin
 ### AttentionItem
 
 - `id` (string, required): Attention item id (att_...).
-- `kind` (string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. mention.spike: far more mentions in the last hour than the keyword usually gets. sentiment.negative_spike: the negative share of the last 24 hours jumped. keyword.noisy: most scored matches are noise. channel.failing: the channel's last sends all failed. feed.failing: a workspace feed failed its last 3 hourly reads. feed.recovered: it read again after failing.
+- `kind` (string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. - mention.spike: far more mentions in the last hour than usual.
+- sentiment.negative_spike: the negative share of the last 24 hours jumped.
+- keyword.noisy: most scored matches are noise.
+- channel.failing: the channel's last sends all failed.
+- feed.failing: a workspace feed failed its last 3 hourly reads.
+- feed.recovered: it read again after failing.
 - `status` (string, required): one of `open`, `resolved`, `dismissed`. open: the condition holds. resolved: it no longer does. dismissed: a person put it away; it does not come back for the same episode.
 - `subject` (object, required): What the item is about.
   - `type` (string, required): one of `keyword`, `channel`, `feed`. keyword, channel or feed.
@@ -694,7 +717,12 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kin
   - `id` (string, required): Feed id (fd_...).
   - `url` (string, required): The feed address.
   - `title` (string, required, nullable): The feed's own title, when it has one.
-- `reason` (string, required): one of `login_required`, `login_expired`, `blocked`, `not_found`, `not_a_feed`, `unreachable`. login_required: the feed answers a sign-in or access-denied page (connect it with the forum's sign-in, auth). login_expired: the same on a feed that has a sign-in: copy a fresh cookie. blocked: a 403, a 429 or a bot check. not_found: the feed is gone. not_a_feed: the address answers a page, not RSS or Atom. unreachable: no answer or a server error.
+- `reason` (string, required): one of `login_required`, `login_expired`, `blocked`, `not_found`, `not_a_feed`, `unreachable`. - login_required: a sign-in or access-denied page; add the forum's sign-in.
+- login_expired: the same with a sign-in; copy a fresh cookie.
+- blocked: a 403, a 429 or a bot check.
+- not_found: the feed is gone.
+- not_a_feed: the address answers a page, not RSS or Atom.
+- unreachable: no answer or a server error.
 - `detail` (string, required, nullable): What the last failed read saw, in a few words.
 - `failingSince` (string, required): When it started failing: the third failed read in a row.
 - `keywordsAffected` (integer, required): Live keywords of the workspace that read workspace feeds: what misses its posts while it fails.

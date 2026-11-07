@@ -68,7 +68,11 @@ curl -sS "https://api.mentio.dev/v1/mentions?viewId=vw_...&since=2026-09-15T00:0
 
 ### GET /v1/mentions
 
-**List mentions.** Mentions matched to your keywords, filtered and paginated. Default order is newest match first; sort=priority ranks the last 30 days of matches by attention score. Page with nextCursor, passing the same filters and sort. A mention is one post matched to one keyword. alertId applies an alert rule's filter on top of the others: the same mentions that rule would send. anyOf adds OR: URL-encoded JSON groups of conditions, at least one of which must hold on top of every other filter.
+**List mentions.** List the mentions matched to your keywords, newest match first, filtered and cursor-paginated.
+
+- A mention is one post matched to one keyword.
+- `sort=priority` ranks the last 30 days by attention score.
+- `alertId` applies that alert rule's filter; `anyOf` adds OR. See [Conventions](/conventions#or-across-groups-anyof).
 
 CLI: `mentio mentions:search`
 
@@ -126,7 +130,7 @@ Query:
 - `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
 - `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -138,7 +142,9 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### GET /v1/mentions/{id}
 
-**Get a mention.** One mention by id, as it appears in the list: the post, its author with reach and your tags, the classification, the priority score and the triage fields. Ids belong to your organization; any other id is a 404.
+**Get a mention.** Get one mention by id, as it appears in the list.
+
+It carries the post, its author with reach and your tags, the classification, the priority score and the triage fields. Ids belong to your organization; any other id is a 404.
 
 CLI: `mentio mentions:get`
 
@@ -150,7 +156,10 @@ Returns: 200, a `Mention` (see Shapes below).
 
 ### PATCH /v1/mentions/{id}
 
-**Update a mention.** The one write on a mention. Set status to ignored or done to handle it (open puts it back), assign it to a workspace member, snooze it out of the feed, leave an internal note, or correct the classifier: `relevant` true or false is your verdict (relevance becomes 100 or 0, and every list, filter, digest and report follows it), `sentiment` replaces the label; null withdraws a verdict and restores the classifier's value. Omitted fields are untouched. Delivery and billing never change.
+**Update a mention.** Triage, assign, snooze, annotate or correct the classification of a mention.
+
+- `relevant` and `sentiment` are your verdict; every list, digest and report follows it. null restores the classifier's.
+- Omitted fields stay. Delivery and billing never change.
 
 CLI: `mentio mentions:update`
 
@@ -164,14 +173,16 @@ Body (JSON): Every field is optional; omitted fields are untouched.
 - `assigneeId` (string, nullable): A workspace member (user id), or null to unassign.
 - `snoozedUntil` (string): ISO 8601 (or epoch ms) until which the mention leaves the feed; null wakes it.
 - `note` (string, nullable): Internal note; null or empty clears it.
-- `relevant` (boolean, nullable): Your verdict on relevance, correcting the classifier: true sets relevance to 100 and puts a filtered mention back in the relevant feed, false sets it to 0 and takes it out; null withdraws the verdict and restores the classifier's score. Never billed or unbilled. A mention still being classified answers 409 classification_pending.
+- `relevant` (boolean, nullable): Your verdict: true sets relevance to 100 (a filtered mention becomes relevant), false to 0; null restores the classifier's score. Billing never changes. 409 classification_pending while it is still being classified.
 - `sentiment` (string, nullable): one of `positive`, `neutral`, `negative`. Your corrected sentiment; null withdraws the correction and restores the classifier's.
 
 Returns: 200, a `Mention` (see Shapes below).
 
 ### GET /v1/mentions/{id}/comments
 
-**List the comments of a mention.** The comments under a mention's post, newest first: every comment in the thread, whether or not it names your keyword. Read once, about a day after the post, for mentions scored relevant whose keyword has comments enabled (keywords.comments), on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit; empty before that and for other keywords. Each comment delivered costs $0.008 on the comments line of the bill, once per workspace. A comment that itself names one of your keywords is also a mention: `mentionId` links it. Two mentions of one post (two keywords) list the same thread.
+**List the comments of a mention.** List the comments under a mention's post, newest first, whether or not they name your keyword.
+
+Filled for relevant mentions of keywords with comments on, read several times as the thread grows; each comment delivered costs $0.008. See [Comments](/guides/comments).
 
 CLI: `mentio mentions:comments`
 
@@ -188,7 +199,12 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### GET /v1/mentions/export.csv
 
-**Export mentions as CSV.** The same mentions GET /v1/mentions would list for these filters, as CSV, newest matched first (the order they entered your feed, which can differ from the post date): id, published_at, platform, keyword, author, author_url, author_followers, relevance, sentiment, intents (pipe-separated), language, confidence, status, relevant, delivered, url, links (pipe-separated), text (first 1,000 characters), group, group_external_id, rating and app_id (app store reviews only), title and image_url (where the platform has them), duplicate_of (the mention a cross-post copies; the CSV keeps one row per mention, copies included; with includeHidden=true, the mentions a keyword hides by language or country too, it adds up to the bill), kind (post, comment or repository), parent_url (the post a comment answers), comments (comments of it delivered to you), subreddit and flair (Reddit only), country (where the author is, ISO 3166-1 alpha-2, empty when unknown) and organization (true when a company or organization posted). Capped at 10,000 rows; the X-Mentions-Truncated header says when the cap cut the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export mentions as CSV.** Export the mentions GET /v1/mentions would list as CSV, newest matched first.
+
+- Capped at 10,000 rows; X-Mentions-Truncated says when cut.
+- 6 exports a minute per workspace.
+
+Columns: see [Exports](/guides/exports).
 
 CLI: `mentio mentions:export`
 
@@ -246,7 +262,7 @@ Query:
 - `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
 - `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -255,7 +271,12 @@ Returns: 200, CSV text.
 
 ### GET /v1/mentions/export.json
 
-**Export mentions as JSON.** The same mentions GET /v1/mentions would list for these filters, in one response, newest matched first (the order they entered your feed): every row is the full Mention object the list returns, text included. Capped at 10,000 mentions; `truncated` (and the X-Mentions-Truncated header) says when the cap cut the list. Shares the CSV export's limit: at most 6 exports per minute per workspace, either format; a 429 carries Retry-After.
+**Export mentions as JSON.** Export the mentions GET /v1/mentions would list as one JSON response, newest matched first.
+
+- Full Mention objects, capped at 10,000; `truncated` says when cut.
+- Shares the CSV export's 6 a minute.
+
+See [Exports](/guides/exports).
 
 CLI: `mentio mentions:export-json`
 
@@ -313,7 +334,7 @@ Query:
 - `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
 - `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
 - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: [{"platforms":["reddit"],"sentiments":["negative"]},{"intents":["buy_intent"]}] is "negative on Reddit, or buying intent anywhere". Each group holds the conditions of a view filter (lists any-of, not lists none-of, all ANDed); a mention passes when at least one group holds, and every other filter here still applies. 1 to 10 groups, none empty, no nesting.
+- `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
 - `q` (string): Substring search in the post text or the author's name.
 - `since` (string): Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Only posts published at or before this instant (ISO 8601, or epoch ms).
@@ -322,7 +343,9 @@ Returns: 200, `{ data: Mention[], truncated }` (see Shapes below).
 
 ### GET /v1/views
 
-**List views.** The saved views of the workspace, oldest first. A view is a named filter over mentions: pass its id as `viewId` to GET /v1/mentions or the export to read exactly what it selects.
+**List views.** List the workspace's saved views, oldest first.
+
+A view is a named filter over mentions: pass its id as `viewId` to GET /v1/mentions or the export to read exactly what it selects.
 
 CLI: `mentio views:list`
 
@@ -330,7 +353,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/views
 
-**Save a view.** Save a named filter over mentions. The filter takes the same fields as GET /v1/mentions (lists are any-of, `not` lists none-of, every condition ANDed), plus `anyOf`, groups of those conditions of which at least one must hold; an empty filter is every mention. Nothing is materialized: the view selects whatever matches when it is read.
+**Save a view.** Save a named filter over mentions, evaluated whenever it is read.
+
+The filter takes GET /v1/mentions' fields plus `anyOf`; an empty filter is every mention. See [Views](/guides/views).
 
 CLI: `mentio views:create`
 
@@ -380,7 +405,7 @@ Body (JSON):
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 
 Returns: 201, a `View` (see Shapes below).
 
@@ -452,7 +477,7 @@ Body (JSON):
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 
 Returns: 200, a `View` (see Shapes below).
 
@@ -485,21 +510,27 @@ Returns: 204, no body.
   - `matchedIn` (string, required): one of `text`, `speech`. text: the term is in the post itself (its text, caption, hashtags or review). speech: it is only in what is said in the video (TikTok), whose transcript follows the 🎙 mark in post.text.
 - `post` (object, required)
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, facebook, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
-  - `kind` (string, required): one of `post`, `comment`, `repository`. post: a top-level post. comment: an item that answers a post or another comment (a Reddit or Hacker News comment, an X or Bluesky reply, a Stack Overflow answer, a YouTube comment). repository: an event about a GitHub repository naming the keyword (see post.repository).
+  - `kind` (string, required): one of `post`, `comment`, `repository`. post: a top-level post. comment: answers a post or comment (Reddit, Hacker News or YouTube comments, X or Bluesky replies, Stack Overflow answers). repository: a GitHub repository event (see post.repository).
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
-  - `title` (string, required, nullable): The post's own title where the platform has one: a Hacker News story, a Reddit thread, a GitHub issue or pull request, a Stack Overflow question, a DEV article, a YouTube video, a news article, a titled review. Null for platforms without titles (X, Bluesky, LinkedIn) and for posts ingested before October 2026.
+  - `title` (string, required, nullable): The post's own title where the platform has one (a story, thread, issue, question, article, video or titled review). Null on X, Bluesky and LinkedIn, and for posts ingested before October 2026.
   - `imageUrl` (string, required, nullable): A preview image of the post, when the platform sent one with it: a YouTube thumbnail, a DEV cover, a news article's sharing image, a Bluesky link card or image. Null otherwise.
   - `subreddit` (string, required, nullable): The subreddit a Reddit post was written in, without the r/ (SaaS). Null on every other platform.
   - `flair` (string, required, nullable): A Reddit post's flair, when its subreddit uses them (Question, Show and Tell). Null otherwise.
   - `repository` (object, required, nullable): A GitHub repository event's facts, on a mention whose kind is repository; null on every other mention. The sentence is post.title.
     - `name` (string, required): The repository, owner/name.
-    - `event` (string, required): one of `new`, `traction`, `stars`, `growth`, `top`. What happened. new: it was created. traction: under 30 days old, it reached 10 stars. stars: it passed a star milestone. growth: it gained stars fast in a week. top: one of the most starred repositories naming the keyword, brought by a new keyword's look-back.
+    - `event` (string, required): one of `new`, `traction`, `stars`, `growth`, `top`. What happened:
+
+- new: it was created.
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a star milestone.
+- growth: it gained stars fast in a week.
+- top: among the most starred naming the keyword, from a look-back.
     - `stars` (integer, required): Its stars when the event was found.
     - `weeklyStars` (integer, required, nullable): Stars gained in the 7 days before the event; null when that week is not known yet.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
-  - `engagement` (object, required, nullable): Engagement counts as the platform reported them when the post was ingested, usually minutes after it was written; a count the platform does not have is null. Null as a whole for platforms that report none and for posts ingested before September 2026. X carries all six.
+  - `engagement` (object, required, nullable): Counts as the platform reported them at ingest, usually minutes after posting; a missing count is null. Null as a whole when a platform reports none, or before September 2026. X carries all six.
     - `likes` (integer, required, nullable)
     - `reposts` (integer, required, nullable)
     - `replies` (integer, required, nullable)
@@ -535,10 +566,17 @@ Returns: 204, no body.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
-  - `intents` (array of string, required): Intent and topic tags: buy_intent, question, complaint, praise, comparison, churn_intent (leaving or replacing the keyword), bug_report, pricing, hiring, event, promotional, testimonial (a customer vouching for it from their own use), industry_insight (analysis or data about the field), launch (a product or feature launch announcement), feedback (a suggestion or request about it).
-  - `automated` (boolean, required): The post reads as machine-made: a bot or app account, a scheduled or templated post, an obvious AI-written summary. A label only: automated mentions stay in the feed, are delivered as usual and are billed like any other match. false while unjudged.
+  - `intents` (array of string, required): Intent and topic tags:
+
+- buy_intent, question, complaint, praise, comparison, bug_report, pricing, hiring, event, promotional.
+- churn_intent: leaving or replacing the keyword.
+- testimonial: a customer vouching for it from their own use.
+- industry_insight: analysis or data about the field.
+- launch: a product or feature launch announcement.
+- feedback: a suggestion or request about it.
+  - `automated` (boolean, required): The post reads as machine-made (a bot or app account, a scheduled or templated post, an AI-written summary). A label only: it stays in the feed, delivered and billed as usual. false while unjudged.
   - `language` (string, required, nullable): The language the post is written in, as an ISO 639-1 code (en, es, de); null when unknown, not one of the 20 the classifier names, or classified before languages were recorded.
-  - `country` (string, required, nullable): Where the author is, as a lowercase ISO 3166-1 alpha-2 code (us, in, de): the classifier's reading of the author's profile location and the post. A best guess, not a fact the platform gave; null when nothing tells, when it is not one of the 60 the classifier names, or when classified before countries were recorded.
+  - `country` (string, required, nullable): Where the author is (lowercase ISO 3166-1 alpha-2): the classifier's best guess from profile and post. Null when unknown, outside the 60 it names, or classified before countries were recorded.
   - `organization` (boolean, required): The author is a company, brand or organization account rather than a person: a LinkedIn company page, a GitHub organization, an account that speaks for a business. A label only, like automated. false while unjudged.
   - `confidence` (number, required, nullable): How sure the classifier is of its relevance verdict, 0 to 1. null when the verdict came without one: the fallback model judged, or the row was scored before confidence was recorded.
   - `uncertain` (boolean, required): The verdict deserves a human look: confidence under 0.4, or the model that wrote the note disagreed with the verdict. A flag for reviewers; it never hides a mention.
@@ -558,7 +596,7 @@ Returns: 204, no body.
     - `email` (string, required, nullable)
   - `snoozedUntil` (string, required, nullable): Until when the mention stays out of the feed; null when not snoozed.
   - `note` (string, required, nullable): Internal note; null when none.
-- `duplicateOf` (string, required, nullable): Set on a cross-post: the id of the mention this one copies (the same author posting the same text again for the same keyword within three days, like one announcement pasted into five subreddits). A copy is billed like any mention but is listed only under its original and never alerted on its own. null for an original.
+- `duplicateOf` (string, required, nullable): On a cross-post (same author, text and keyword within three days), the original's id. Billed like any mention, listed only under its original, never alerted alone. null for an original. See [Cross-posts](/how-it-works#cross-posts).
 - `duplicates` (array of object, required): The cross-posts filed under this mention, oldest first: where else its author posted it. Empty when there are none, and on a copy.
   - `id` (string, required): The copy's mention id (mm_...).
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, facebook, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
@@ -601,7 +639,7 @@ The group the keyword belongs to.
   - `url` (string, required, nullable): Their profile.
   - `avatarUrl` (string, required, nullable): Their profile picture, when the platform sends one.
 - `parentCommentId` (string, required, nullable): The comment this one answers, when it is a reply inside the thread; null for a comment on the post itself.
-- `engagement` (object, required, nullable): Engagement counts as the platform reported them when the post was ingested, usually minutes after it was written; a count the platform does not have is null. Null as a whole for platforms that report none and for posts ingested before September 2026. X carries all six.
+- `engagement` (object, required, nullable): Counts as the platform reported them at ingest, usually minutes after posting; a missing count is null. Null as a whole when a platform reports none, or before September 2026. X carries all six.
   - `likes` (integer, required, nullable)
   - `reposts` (integer, required, nullable)
   - `replies` (integer, required, nullable)
@@ -717,6 +755,6 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minQuotes` (integer): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
   - `minViews` (integer): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
-  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group (1 to 10 groups). The other conditions still apply to every mention: the whole filter is (other conditions) AND (group 1 OR group 2 ...). A group takes the conditions of a view filter (platforms, sentiments, intents, keywordKinds, the not lists ...), with no anyOf of its own.
+  - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 - `updatedAt` (string, required): ISO 8601 timestamp, UTC.

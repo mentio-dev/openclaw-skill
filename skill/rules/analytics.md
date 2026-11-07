@@ -38,7 +38,9 @@ curl -sS "https://api.mentio.dev/v1/analytics/share-of-voice?range=90d&platforms
 
 ### GET /v1/analytics/breakdown
 
-**Mentions grouped by one dimension.** One table of matched, relevant and sentiment counts grouped by `by`: platform, keyword, sentiment, intent, status, hour (weekday and hour of day) or person. The window is `range` (7d, 30d, 90d, 365d, ending today) or `from` and `to`, cut into days in `timezone` (UTC by default); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before it. Time axis is the publish date.
+**Mentions grouped by one dimension.** Count matched, relevant and sentiment mentions in one table, grouped by one dimension (`by`).
+
+The window is `range` or `from` and `to`, in `timezone`, by publish date; `compare=true` adds the period before.
 
 CLI: `mentio analytics:breakdown`
 
@@ -51,13 +53,27 @@ Query:
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension to group by: platform, keyword, sentiment (unclassified included), intent (a mention can carry several), status (open, ignored, done), hour (weekday and hour of day in `timezone`), person (who posted; anonymous posts are left out), language (ISO 639-1; "unknown" for posts without one, "other" for a language the classifier recognised but does not name), country (where the author is, ISO 3166-1 alpha-2; "unknown" for posts nobody could place, "other" for a place it does not name), subreddit (Reddit posts only, most active first; `share` stays a percent of the whole window, every platform included).
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension to group by:
+
+- platform or keyword.
+- sentiment: unclassified included.
+- intent: a mention can carry several.
+- status: open, ignored, done.
+- hour: weekday and hour of day in `timezone`.
+- person: who posted; anonymous posts are left out.
+- language: ISO 639-1; "unknown" if none, "other" if unnamed.
+- country: the author's, ISO 3166-1 alpha-2; "unknown", "other" likewise.
+- subreddit: Reddit posts only; `share` stays of the whole window.
 
 Returns: 200, a `AnalyticsBreakdown` (see Shapes below).
 
 ### GET /v1/analytics/reviews
 
-**Reviews: stars over a window, per review page.** The reviews a keyword collects (App Store, Google Play, Trustpilot, Google Maps): count, average stars, distribution, replies and open 1-2 star reviews, for the workspace and per review page with a series of average stars per `bucket`, plus the tags the unhappy reviews carry. A review matched by two keywords counts once. The window is `range` (7d, 30d, 90d, 365d, ending today) or `from` and `to`, cut into days in `timezone` (UTC by default); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before it. Time axis is the publish date.
+**Reviews: stars over a window, per review page.** Report on your keywords' reviews: count, average stars, distribution, replies and open 1-2 star reviews.
+
+Per page too, with unhappy reviews' tags; each review counts once.
+
+The window is `range` or `from` and `to`, in `timezone`, by publish date; `compare=true` adds the period before.
 
 CLI: `mentio analytics:reviews`
 
@@ -76,7 +92,9 @@ Returns: 200, a `ReviewsReport` (see Shapes below).
 
 ### GET /v1/analytics/series
 
-**Mentions over time.** Matched, relevant and sentiment counts per day or week across the window, as one total series or split per platform or per keyword with `by`. The window is `range` (7d, 30d, 90d, 365d, ending today) or `from` and `to`, cut into days in `timezone` (UTC by default); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before it. Time axis is the publish date.
+**Mentions over time.** Count matched, relevant and sentiment mentions per day or week, in total or per platform or keyword (`by`).
+
+The window is `range` or `from` and `to`, in `timezone`, by publish date; `compare=true` adds the period before.
 
 CLI: `mentio analytics:series`
 
@@ -96,7 +114,11 @@ Returns: 200, a `AnalyticsSeries` (see Shapes below).
 
 ### GET /v1/analytics/share-of-voice
 
-**Brand against competitors.** Every keyword matched in the window with its counts and its share of brand plus competitor matches; topic keywords are counted but stay out of the split. The window is `range` (7d, 30d, 90d, 365d, ending today) or `from` and `to`, cut into days in `timezone` (UTC by default); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before it. Time axis is the publish date.
+**Brand against competitors.** List every keyword matched in the window with its share of brand plus competitor matches.
+
+Topic keywords are counted but stay out of the split.
+
+The window is `range` or `from` and `to`, in `timezone`, by publish date; `compare=true` adds the period before.
 
 CLI: `mentio analytics:share-of-voice`
 
@@ -114,7 +136,9 @@ Returns: 200, a `ShareOfVoice` (see Shapes below).
 
 ### GET /v1/analytics/summary
 
-**Headline counts for a window.** Matched and relevant mentions, distinct posts and people, sentiment, buying intent and questions, estimated reach, and where the matches stand in triage. The window is `range` (7d, 30d, 90d, 365d, ending today) or `from` and `to`, cut into days in `timezone` (UTC by default); `keywordIds` and `platforms` narrow it; `compare=true` adds the period of the same length right before it. Time axis is the publish date.
+**Headline counts for a window.** Summarize matched and relevant mentions, posts, people, sentiment, intent, reach and triage over a window.
+
+The window is `range` or `from` and `to`, in `timezone`, by publish date; `compare=true` adds the period before.
 
 CLI: `mentio analytics:summary`
 

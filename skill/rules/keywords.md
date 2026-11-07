@@ -81,7 +81,9 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/filters" -H "Authorization: Bearer 
 
 ### GET /v1/keywords
 
-**List keywords.** The keywords of the workspace with their match stats and poll health. Without parameters: every keyword, newest first. `q` searches the term and the context; `kind`, `status` and `platform` narrow the list; `sort` orders it; `limit` and `offset` page it. `total` counts the keywords that matched before paging.
+**List keywords.** List the workspace's keywords with their match stats and poll health, newest first.
+
+`q` searches term and context; the other parameters filter, sort and page; `total` counts matches before paging.
 
 CLI: `mentio keywords:list`
 
@@ -100,7 +102,13 @@ Returns: 200, `{ data: Keyword[], total }` (see Shapes below).
 
 ### POST /v1/keywords
 
-**Track a keyword.** Start tracking a word or phrase. Matching, classification and delivery begin on the next poll. A funded workspace tracks up to 500 keywords; each costs $5 per month, deducted daily from the balance. `matching` narrows what the term matches (required and excluded terms, excluded authors, case, subreddits, GitHub repository events) before a mention is stored, so a rejected post is never billed; `context` is a sentence the classifier reads for this keyword only. `cap` puts a monthly ceiling on its matched mentions: at the cap it stops matching until the first of the next month (UTC) or until the cap is raised, while its daily keyword charge continues.
+**Track a keyword.** Start tracking a word or phrase; mentions arrive from the next poll.
+
+- $5 a month, charged daily; up to 500 per funded workspace.
+- `matching` filters posts before they are stored, so rejected posts never bill.
+- `cap` limits matched mentions per period.
+
+See [Keywords](/guides/keywords).
 
 CLI: `mentio keywords:create`
 
@@ -109,28 +117,33 @@ Body (JSON):
 - `term` (string, required): The word or phrase to track, case-insensitive. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
-- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
   - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
-  - `requiredGroups` (array of array of string): Combinations of terms, at most 50 of 10 terms each: the post must ALSO contain every term of at least one group (an OR of ANDs). For the keyword inreach, [["weather", "alert*"], ["tsunami"], ["flash flood"]] keeps a post about inReach weather alerts, tsunamis or flash floods, one keyword instead of three. Same phrase and wildcard rules as requiredTerms; when both are set a post must pass both. Empty: no combinations.
+  - `requiredGroups` (array of array of string): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
-  - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
   - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
-    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
+
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a milestone (100, 250, 500, 1,000 ...).
+- growth: it gained stars fast in a week.
+- new: every repository created; opt in, mostly noise.
     - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
-    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
+    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
 - `cap` (object, nullable): A mention cap per day, week or month (per, default month); omit or null for none.
   - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
-  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
 - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
-  - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
-  - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
+  - `enabled` (boolean): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+  - `maxPerPost` (integer): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
 - `display` (object): Which of this keyword's mentions you see, by language and country; each list is replaced when sent, kept when omitted. Hidden mentions are still billed.
   - `languages` (object): By the language of the post (ISO 639-1); omitted: untouched.
     - `only` (array of string): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. Replaces the list; [] clears it.
@@ -139,13 +152,13 @@ Body (JSON):
     - `only` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Replaces the list; [] clears it.
     - `excluded` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Replaces the list; [] clears it.
 - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
-- `reviewSources` (array of object): Review pages this keyword collects, at most 10: App Store and Google Play apps, Trustpilot pages, Google Maps places. Every new review of one is a mention of the keyword, whatever its text says. Polled once a day (per country on the app stores). A newly connected page brings its last 30 days, the newest 100 reviews (per country), free and never sent as instant alerts; after that each review bills like any mention.
+- `reviewSources` (array of object): Review pages this keyword collects (app store apps, Trustpilot pages, Google Maps places): every new review is a mention, whatever it says. Polled daily; a newly connected page brings 30 days back, free. See [Reviews](/platforms/reviews).
   - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
   - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
   - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
-  - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
+  - `countries` (array of string): App Store and Google Play storefronts to read, as two-letter codes; default the link's, else us. Each adds a daily poll; a review seen in two is one mention. Trustpilot and Google Maps take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
-- `feeds` (array of object): RSS or Atom feeds this keyword reads, at most 20, each { url }: a feed's URL, or a page's (a forum, a community, a blog), in which case the feed the page advertises is used, else a usual address such as /feed or /rss. A URL with no feed behind it is a 400. Each feed is read every hour; an item is a mention of this keyword when it holds the term (with the keyword's matching rules), and only of keywords that named the feed. A newly connected feed brings its newest 10 items of the last 30 days that hold the term, billed like any mention and never sent as instant alerts.
+- `feeds` (array of object): RSS or Atom feeds only this keyword reads: a feed's URL, or a page that advertises one (else a 400). Read hourly; an item holding the term is a mention. See [RSS](/platforms/rss#a-keywords-own-feeds).
   - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
 - `readsWorkspaceFeeds` (boolean): Whether the keyword also reads the workspace's feeds (GET /v1/feeds); default true. A new keyword reading them gets the look-back of the 8 most recently connected.
 
@@ -165,7 +178,11 @@ Returns: 200, a `Keyword` (see Shapes below).
 
 ### PATCH /v1/keywords/{id}
 
-**Update a keyword.** Rename it (`term`: the new term is tracked from now on, with no look-back; the mentions the old term found stay), mute or unmute it, reclassify it (`kind`), change the platforms it is tracked on, its classifier `context`, its `matching` rules (each rule field optional; an empty list clears one), or its monthly mention `cap` (null removes it; a cap above this month's count resumes a capped keyword at once). Rules apply to new mentions from the next poll; stored mentions are untouched.
+**Update a keyword.** Change a keyword's term, mute, kind, platforms, context, matching rules or mention cap.
+
+- A new `term` is tracked from now on, no look-back; old mentions stay.
+- An empty rule list clears it; `cap` null removes the cap.
+- Changes apply to new mentions only.
 
 CLI: `mentio keywords:update`
 
@@ -175,32 +192,37 @@ Path:
 
 Body (JSON): Omitted fields are untouched.
 
-- `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, and the keyword keeps its id, its settings and the mentions the old term found. Wrap it in double quotes for the exact phrase only. A 409 when its group already tracks the new term.
+- `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it.
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
-- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
   - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
-  - `requiredGroups` (array of array of string): Combinations of terms, at most 50 of 10 terms each: the post must ALSO contain every term of at least one group (an OR of ANDs). For the keyword inreach, [["weather", "alert*"], ["tsunami"], ["flash flood"]] keeps a post about inReach weather alerts, tsunamis or flash floods, one keyword instead of three. Same phrase and wildcard rules as requiredTerms; when both are set a post must pass both. Empty: no combinations.
+  - `requiredGroups` (array of array of string): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
   - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
-  - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
   - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
-    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
+
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a milestone (100, 250, 500, 1,000 ...).
+- growth: it gained stars fast in a week.
+- new: every repository created; opt in, mostly noise.
     - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
-    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
+    - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
   - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
     - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
     - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
 - `cap` (object, nullable): Replaces the mention cap and its period (per, default month); null removes it. A cap above the current period's count resumes a capped keyword at once, one at or under it pauses it.
   - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
-  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
 - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
-  - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
-  - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
+  - `enabled` (boolean): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+  - `maxPerPost` (integer): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
 - `display` (object): Which of this keyword's mentions you see, by language and country; each list is replaced when sent, kept when omitted. Hidden mentions are still billed.
   - `languages` (object): By the language of the post (ISO 639-1); omitted: untouched.
     - `only` (array of string): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. Replaces the list; [] clears it.
@@ -213,7 +235,7 @@ Body (JSON): Omitted fields are untouched.
   - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
   - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
   - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
-  - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
+  - `countries` (array of string): App Store and Google Play storefronts to read, as two-letter codes; default the link's, else us. Each adds a daily poll; a review seen in two is one mention. Trustpilot and Google Maps take none.
   - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
 - `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
   - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
@@ -235,7 +257,9 @@ Returns: 204, no body.
 
 ### POST /v1/keywords/{id}/duplicate
 
-**Duplicate a keyword.** A new keyword with this one's settings and a new `term` (or the same term in another group): its kind, platforms, context, every matching rule, its monthly mention cap and its comments setting. Review apps and feeds are copied only when listed in `include`. It is a new keyword: $5 per month, and the newest posts of the last 30 days come in at once, as with any new keyword.
+**Duplicate a keyword.** Create a keyword with this one's settings under a new term or group.
+
+It copies kind, platforms, context, rules, cap and comments; review apps and feeds only via `include`. A new keyword: $5 a month and a 30-day look-back.
 
 CLI: `mentio keywords:duplicate`
 
@@ -253,7 +277,12 @@ Returns: 201, a `Keyword` (see Shapes below).
 
 ### GET /v1/keywords/{id}/health
 
-**Get a keyword's health.** Whether the keyword earns what it costs over a trailing window (`range`, default 30d): a status (healthy, noisy, quiet, capped, paused, new) with the reasons in plain words, its numbers by platform and week, what it cost, the words and authors its noise is made of, and suggestions. Each suggestion carries a `patch` to send to PATCH /v1/keywords/{id} as is, and the effect it would have had, measured by running the matcher's own rules over the window's posts. `ai=true` adds a context rewritten by a language model (cached a day, at most 20 model calls an hour per workspace). Read only and never billed; the report is cached for 5 minutes, and a change to the keyword starts a fresh one. At most 30 reads a minute per workspace.
+**Get a keyword's health.** Report whether a keyword earns what it costs, with reasons and suggested fixes.
+
+- Each suggestion has a `patch` for PATCH /v1/keywords/{id} and its measured effect.
+- Read only, never billed, cached 5 minutes; 30 reads a minute.
+
+See [Keyword health](/guides/keyword-health).
 
 CLI: `mentio keywords:health`
 
@@ -270,7 +299,9 @@ Returns: 200, a `KeywordHealth` (see Shapes below).
 
 ### GET /v1/groups
 
-**List groups.** The keyword groups of the workspace, the default group first, then oldest first. A group is how keywords are grouped (a customer, a campaign, a product): a term may be tracked once per group, every keyword belongs to one, and GET /v1/usage/breakdown?by=group says what each group cost. Pass `externalId` to find the group carrying your own id.
+**List groups.** List the workspace's keyword groups, default first, then oldest first.
+
+A term may be tracked once per group. Pass `externalId` to find the group carrying your own id. See [Groups](/guides/groups).
 
 CLI: `mentio groups:list`
 
@@ -282,7 +313,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/groups
 
-**Create a group.** Create a keyword group. `name` is unique per workspace; `externalId` (optional, unique too) is your own id for it, a customer id say, so you can find it again without storing ours; `context` (optional) is the group's own company description, which the classifier reads in place of the whole workspace profile for the group's keywords. Then pass the group id as `groupId` when creating a keyword.
+**Create a group.** Create a keyword group, then pass its id as `groupId` when creating keywords.
+
+`externalId` is your own id for it; `context` is its company description, read instead of the workspace profile. See [Groups](/guides/groups).
 
 CLI: `mentio groups:create`
 
@@ -290,7 +323,7 @@ Body (JSON):
 
 - `name` (string, required): The group's name: a customer, a campaign, a product. Unique per workspace.
 - `externalId` (string, nullable): Your own id for the group (a customer id, say). Unique per workspace; find the group by it with GET /v1/groups?externalId=.
-- `context` (string, nullable): What the classifier reads as "the company" for this group's keywords, in place of the WHOLE workspace profile, its relevance guidelines and competitor list included (at most 4000 characters): who the business is, what it sells, for whom, what is not it, and any rule that should apply to this group ("ignore job posts"). For a group per customer, the customer's description. Null: the workspace profile, as for every keyword before groups.
+- `context` (string, nullable): What the classifier reads as "the company" for this group's keywords, instead of the WHOLE workspace profile (guidelines and competitors included). Null: the workspace profile. See [Groups](/guides/groups#a-company-description-per-group).
 
 Returns: 201, a `Group` (see Shapes below).
 
@@ -308,7 +341,9 @@ Returns: 200, a `Group` (see Shapes below).
 
 ### PATCH /v1/groups/{id}
 
-**Update a group.** Rename a group, change your id for it (`externalId`, null clears) or its company description (`context`, null clears: the workspace profile applies again; new mentions are judged with it at once, old ones are not rescored). The default group can be renamed like any other but takes no description: it is the workspace itself and reads the company profile.
+**Update a group.** Rename a group, or change its `externalId` or company description (`context`); null clears either.
+
+New mentions use a new description at once; old ones are not rescored. The default group takes no description.
 
 CLI: `mentio groups:update`
 
@@ -320,13 +355,15 @@ Body (JSON): Omitted fields are untouched.
 
 - `name` (string): The group's name: a customer, a campaign, a product. Unique per workspace.
 - `externalId` (string, nullable): Replaces your id for the group; null clears it.
-- `context` (string, nullable): Replaces the group's company description; null clears it (the workspace profile applies again). New mentions are judged with it at once; old ones are not rescored. Not on the default group (400 default_group_context): that one is the workspace itself and reads the profile.
+- `context` (string, nullable): Replaces the group's company description; null clears it. New mentions are judged with it at once, old ones are not rescored. Not on the default group (400 default_group_context).
 
 Returns: 200, a `Group` (see Shapes below).
 
 ### DELETE /v1/groups/{id}
 
-**Delete a group and its keywords.** Deletes the group and EVERY keyword in it, each the way DELETE /v1/keywords/{id} does (its mentions go with it, alert rules that named it are adjusted; charges already made stay on the usage record). Read the group first: `stats.keywords` says how many go. The default group cannot be deleted: move or delete its keywords instead.
+**Delete a group and its keywords.** Delete a group and EVERY keyword in it, with their mentions.
+
+Alert rules naming them are adjusted; charges stay on the usage record. The default group cannot be deleted. The group's `stats.keywords` says how many go.
 
 CLI: `mentio groups:delete`
 
@@ -338,7 +375,9 @@ Returns: 204, no body.
 
 ### GET /v1/feeds
 
-**List feeds.** The RSS and Atom feeds the workspace reads (forums, communities, blogs), newest connection first, each with how its hourly poll goes. Every keyword of the workspace with readsWorkspaceFeeds (the default) reads these feeds: an item holding its term is one of its mentions, with its matching rules, billed like any mention. Each feed is read every hour; reading it is free. At most 500 a workspace.
+**List feeds.** List the workspace's RSS and Atom feeds, newest first, each with its poll health.
+
+Keywords with readsWorkspaceFeeds (the default) read them hourly, for free; matching items bill as mentions. See [RSS](/platforms/rss#workspace-feeds).
 
 CLI: `mentio feeds:list`
 
@@ -352,7 +391,12 @@ Returns: 200, `{ data: Feed[], total }` (see Shapes below).
 
 ### POST /v1/feeds
 
-**Connect a feed.** Connect an RSS or Atom feed: a feed's address, or a page's (a forum, a community, a blog), in which case the feed the page advertises is used, else a usual address such as /feed or /rss. Every keyword of the workspace with readsWorkspaceFeeds (the default) reads these feeds: an item holding its term is one of its mentions, with its matching rules, billed like any mention. Each feed is read every hour; reading it is free. At most 500 a workspace. A new feed brings each reading keyword the newest 10 items of the last 30 days that hold its term, never as instant alerts. A feed the workspace reads already comes back with 200 (connecting is idempotent). A members-only forum answers `feed_login_required`: send it again with `auth` (a cookie or a header), stored encrypted and read for this workspace alone.
+**Connect a feed.** Connect an RSS or Atom feed, or a page advertising one, for the workspace's keywords to read hourly.
+
+- Idempotent: a feed already read returns 200.
+- A members-only forum answers `feed_login_required`: resend with `auth`.
+
+See [RSS](/platforms/rss#workspace-feeds).
 
 CLI: `mentio feeds:create`
 
@@ -377,7 +421,9 @@ Returns: 200, a `Feed` (see Shapes below).
 
 ### PATCH /v1/feeds/{id}
 
-**Update a feed.** Rename a feed (title, null clears it), or set its sign-in for a members-only forum (auth: a cookie copied from your browser, or one header such as Discourse's Api-Key). A sign-in is checked by reading the feed with it, stored encrypted, sent to the feed's own site alone and never shown again; the feed is then read for this workspace alone. auth: null removes it.
+**Update a feed.** Rename a feed, or set its sign-in for a members-only forum.
+
+`auth` is a browser cookie or one header (such as Discourse's Api-Key), checked, stored encrypted and never shown; the feed is then read for this workspace alone. null removes it.
 
 CLI: `mentio feeds:update`
 
@@ -406,7 +452,9 @@ Returns: 204, no body.
 
 ### POST /v1/feeds/import
 
-**Connect many feeds.** Connect up to 100 feeds in one call, each { url } or { url, auth } for a members-only one, checked on its own and reported added, already or failed, in the order sent: one that fails never stops the others. A failure carries the error code POST /v1/feeds would answer for that address (feed_login_required: send it again with auth). Every keyword of the workspace with readsWorkspaceFeeds (the default) reads these feeds: an item holding its term is one of its mentions, with its matching rules, billed like any mention. Each feed is read every hour; reading it is free. At most 500 a workspace. The first 8 added bring each reading keyword the newest 10 matching items of the last 30 days; the rest start from now.
+**Connect many feeds.** Connect up to 100 feeds in one call, each reported added, already or failed, in order.
+
+A failure never stops the others and carries the code POST /v1/feeds would answer. Only the first 8 added bring a look-back. See [RSS](/platforms/rss#workspace-feeds).
 
 CLI: `mentio feeds:import`
 
@@ -420,7 +468,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### GET /v1/filters
 
-**Get the workspace filters.** The noise rules applied to every keyword before a mention is stored: excluded terms and authors, excluded GitHub repositories, and the subreddits Reddit posts may (or may not) come from. A post they reject is never classified, delivered or billed. Keyword-level rules live on each keyword (`matching`); both apply.
+**Get the workspace filters.** Read the workspace's noise rules, applied to every keyword before a mention is stored.
+
+A rejected post is never classified, delivered or billed. Keyword rules (`matching`) apply too.
 
 CLI: `mentio filters:get`
 
@@ -428,7 +478,9 @@ Returns: 200, a `WorkspaceFilters` (see Shapes below).
 
 ### PATCH /v1/filters
 
-**Update the workspace filters.** Replace any of the lists; an omitted list is untouched and an empty one clears it. Entries are stored in canonical form (terms lowercased, authors as profile links or bare names, repositories as owner/name, subreddits without r/). Takes effect on new mentions within a minute; stored mentions are untouched.
+**Update the workspace filters.** Replace any of the workspace's noise-rule lists; omitted lists stay, empty ones clear.
+
+Entries are stored canonically (lowercase terms, authors as profile links or names, owner/name repositories, subreddits without r/). Applies to new mentions within a minute.
 
 CLI: `mentio filters:update`
 
@@ -476,47 +528,52 @@ The group the keyword belongs to.
 - `kind` (string, required): one of `brand`, `competitor`, `topic`
 - `muted` (boolean, required): Not polled or matched. Paused by you, by the wallet (see pausedForBalance) or by the noise brake (see pausedForNoise). A keyword at its mention cap is not muted (see pausedForCap).
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
-- `pausedForNoise` (boolean, required): Muted by the noise brake: on a workspace running on its welcome credit, at least 20 of its matches were scored and under 30% were relevant. A change of its required or excluded terms, platforms or context resumes it (when the balance covers another day), and so does unmuting; a top-up does not.
+- `pausedForNoise` (boolean, required): Muted by the noise brake: under 30% of 20 or more scored matches were relevant, on welcome credit. Changing its rules, platforms or context, or unmuting, resumes it (balance permitting); a top-up does not. See [Billing](/billing).
 - `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
 - `cap` (object, required, nullable): The mention cap and its period, or null for none.
   - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
-  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
+  - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
   - `used` (integer, required): Charged items (matches plus thread comments) counted in the current period: today, this week from Monday or this month, UTC. The keyword pauses when it reaches mentions.
   - `welcome` (boolean, required): Set by Mentio, not you: a workspace on its welcome credit collects at most 200 mentions a keyword a month. The first top-up removes it.
   - `own` (integer, required, nullable): Your own cap. With welcome true, the cap the keyword gets back at the first top-up (null for none); otherwise the same as mentions. Sending mentions: 200 back while welcome is true changes nothing.
   - `ownPer` (string, required, nullable): one of `day`, `week`, `month`. The period of your own cap (null when own is null); with welcome false, the same as per.
   - `resumesAt` (string, required, nullable): While paused for its cap (pausedForCap): when its next period starts and it matches again. Null otherwise.
-- `comments` (object, required): Comments under this keyword's mentions: when enabled, the comments of every mention scored relevant are read from 30 minutes after the post, on a schedule per platform (for a day on Reddit, Hacker News and Bluesky, a week on GitHub, Stack Overflow and DEV, a month on YouTube) (new comments only, at most maxPerPost a thread, comments of fewer than three words dropped), on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit. List them with GET /v1/mentions/{id}/comments.
-  - `enabled` (boolean, required): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
-  - `maxPerPost` (integer, required): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
-- `display` (object, required): Which of this keyword's mentions you see, by language and country. Both are read by the classifier, so a hidden post is still matched, classified and billed like any other; it is kept out of the mentions list, the exports, MCP search, alerts and digests (includeHidden=true on GET /v1/mentions shows it). Read when the mentions are read, so changing a list applies to older mentions too.
-  - `languages` (object, required): By the language the post is written in.
-    - `only` (array of string, required): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. When non-empty, a post whose language (ISO 639-1) is known and not listed is hidden, a language (ISO 639-1) the classifier recognises but does not name included. A post whose language (ISO 639-1) nobody could tell is always shown.
-    - `excluded` (array of string, required): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. A post whose language (ISO 639-1) is listed is hidden.
-  - `countries` (object, required): By where the author is, as the classifier read their profile and the post.
-    - `only` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. When non-empty, a post whose author's country (ISO 3166-1 alpha-2) is known and not listed is hidden, a author's country (ISO 3166-1 alpha-2) the classifier recognises but does not name included. A post whose author's country (ISO 3166-1 alpha-2) nobody could tell is always shown.
-    - `excluded` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. A post whose author's country (ISO 3166-1 alpha-2) is listed is hidden.
+- `comments` (object, required): Comments under this keyword's relevant mentions, read several times per thread on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit. List them with GET /v1/mentions/{id}/comments; see [Comments](/guides/comments).
+  - `enabled` (boolean, required): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+  - `maxPerPost` (integer, required): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
+- `display` (object, required): Which of this keyword's mentions you see, by language and country. A hidden post is still matched, classified and billed, but kept out of lists, exports, search, alerts and digests (includeHidden=true shows it). See [Keywords](/guides/keywords#show-only-some-languages-or-countries).
+  - `languages` (object, required): By the language the post is written in (ISO 639-1).
+    - `only` (array of string, required): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. When non-empty, a post whose language is known and not listed is hidden, one the classifier cannot name included. A post whose language nobody could tell is always shown.
+    - `excluded` (array of string, required): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. A post whose language is listed is hidden.
+  - `countries` (object, required): By where the author is (ISO 3166-1 alpha-2), as the classifier read their profile and the post.
+    - `only` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. When non-empty, a post whose author's country is known and not listed is hidden, one the classifier cannot name included. A post whose author's country nobody could tell is always shown.
+    - `excluded` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. A post whose author's country is listed is hidden.
 - `group` (GroupRef, required): The group the keyword belongs to.
 - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
 - `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
 - `readsWorkspaceFeeds` (boolean, required): true (the default): the keyword also reads every feed of the workspace (GET /v1/feeds), on top of its own `feeds`. false: its own feeds alone.
 - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
-- `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+- `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
   - `requiredTerms` (array of string, required): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
   - `requiredMode` (string, required): one of `any`, `all`. any: at least one required term must appear. all: every one must.
-  - `requiredGroups` (array of array of string, required): Combinations of terms, at most 50 of 10 terms each: the post must ALSO contain every term of at least one group (an OR of ANDs). For the keyword inreach, [["weather", "alert*"], ["tsunami"], ["flash flood"]] keeps a post about inReach weather alerts, tsunamis or flash floods, one keyword instead of three. Same phrase and wildcard rules as requiredTerms; when both are set a post must pass both. Empty: no combinations.
+  - `requiredGroups` (array of array of string, required): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
   - `excludedTerms` (array of string, required): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
   - `excludedAuthors` (array of string, required): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean, required): true: the term must appear in the case it was typed (RAG, never rag). Default false.
-  - `exactPhrase` (boolean, required): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+  - `exactPhrase` (boolean, required): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
   - `subreddits` (object, required): Reddit only, for this keyword alone; the workspace filters' own subreddit lists (GET /v1/filters) still apply to every keyword, and a post must pass both.
     - `only` (array of string, required): When non-empty, this keyword takes Reddit posts from these subreddits ONLY and `excluded` is ignored. r/name or name, stored bare and lowercase.
     - `excluded` (array of string, required): Reddit posts from these subreddits are dropped for this keyword. r/name or name.
   - `repositories` (object, required): GitHub only: which repository events naming this keyword become mentions. An event outside the rule is dropped before it is stored, so it is never billed.
-    - `events` (array of string, required): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+    - `events` (array of string, required): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
+
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a milestone (100, 250, 500, 1,000 ...).
+- growth: it gained stars fast in a week.
+- new: every repository created; opt in, mostly noise.
     - `minStars` (integer, required, nullable): Only repositories with at least this many stars; null for no minimum.
-    - `minWeeklyStars` (integer, required, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
+    - `minWeeklyStars` (integer, required, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
@@ -530,8 +587,15 @@ The group the keyword belongs to.
     - `scored` (integer, required): Matches of the last 14 days (by match time) the classifier has scored.
     - `relevant` (integer, required): Of those, the ones scored relevant.
     - `noisy` (boolean, required): At least 20 scored matches in the last 14 days and under 30% of them relevant: tighten the keyword with required terms, excluded terms or context. Every match bills, relevant or not.
-  - `health` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. The keyword's health over the same 14 days as `noise`, by the rule GET /v1/keywords/{id}/health applies to its own window: paused (muted), capped (at its mention cap), noisy (20 or more scored matches, under 30% relevant), new (under 7 days old and not noisy, or changed in the last 7 days with under 20 scored matches since), quiet (7 days or older, nothing relevant), else healthy. Judged on the matches since the keyword's last change to its matching rules, platforms or context (or its unmute) when that is inside the 14 days, so a keyword tightened today is not flagged on the noise the change removed; `noise` itself keeps the whole 14 days. Always 14 days, while the endpoint reads 30 by default, so the two can differ for the same keyword. The health endpoint says why and what to change.
-  - `cost` (object, required): What this keyword has cost this calendar month (UTC) at list price: exactly its row in GET /v1/usage/breakdown?month=<this month> (same tables, same rounding). The wallet's ledger, which settles once a day, is what can differ from these list-price numbers, and only by cumulative rounding.
+  - `health` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. The first status that applies over the last 14 days; see [Keyword health](/guides/keyword-health).
+
+- paused: muted.
+- capped: at its mention cap.
+- noisy: 20 or more scored matches, under 30% relevant.
+- new: under 7 days old, or changed lately with few scored matches.
+- quiet: 7 days or older, nothing relevant.
+- healthy: none of the above.
+  - `cost` (object, required): What this keyword has cost this calendar month (UTC) at list price: its row in GET /v1/usage/breakdown?month=<this month>. The ledger differs only by cumulative rounding.
     - `keywordDays` (integer, required): Days this month the keyword was charged for: unmuted at the daily tick. A keyword created today reads 0 until tomorrow's tick.
     - `keywordCents` (integer, required): Those days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
     - `billableMentions` (integer, required): Matches billed this month, counted when they were scored (the clock the ledger settles by), so it can trail thisMonth by the matches still being scored and never counts one that failed to score.
@@ -555,7 +619,14 @@ The group the keyword belongs to.
   - `from` (string, required): First day, YYYY-MM-DD, inclusive, UTC.
   - `to` (string, required): Last day, inclusive: today.
   - `days` (integer, required): Length of the window in days.
-- `status` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. healthy: nothing to fix. noisy: 20 or more scored matches in the window and under 30% of them relevant. quiet: 7 days or older with no relevant match in the window. capped: at its monthly mention cap. paused: muted (by you, the wallet or the noise brake). new: under 7 days old and not noisy yet, or changed in the last 7 days with under 20 scored matches since the change. When the keyword's matching rules, platforms or context changed (or it was unmuted) inside the window, the status reads only the matches since then (stats.judgedSince).
+- `status` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. The status over the window; see [Keyword health](/guides/keyword-health#status).
+
+- healthy: nothing to fix.
+- noisy: 20 or more scored matches, under 30% relevant.
+- quiet: 7 days or older, nothing relevant.
+- capped: at its mention cap.
+- paused: muted by you, the wallet or the noise brake.
+- new: under 7 days old, or changed lately with few scored matches.
 - `reasons` (array of string, required): Why, in plain words; the first line explains the status.
 - `stats` (object, required): Computed over the keyword's matches in the window.
   - `matches` (integer, required): Matches recorded in the window, relevant or not.
@@ -564,7 +635,7 @@ The group the keyword belongs to.
   - `unscored` (integer, required): Not scored yet, or failed to score (never billed).
   - `noiseShare` (number, required, nullable): filtered / (relevant + filtered); null with nothing scored.
   - `workspaceShare` (number, required, nullable): This keyword's share of the workspace's matches in the window; null when the workspace matched nothing.
-  - `judgedSince` (string, required, nullable): When the keyword last changed its matching rules, platforms or context (or was unmuted), when that is inside the window: the status, the reasons, noiseTerms, noiseAuthors and suggestions read only the matches since then, while these numbers keep the whole window. Null: everything reads the whole window.
+  - `judgedSince` (string, required, nullable): When the keyword last changed its rules, platforms or context (or was unmuted), inside the window: status, reasons, noise and suggestions read only matches since, the numbers the whole window. Null: no change inside it.
   - `byPlatform` (array of object, required): One row per platform it matched on, most matches first.
     - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, facebook, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
     - `matches` (integer, required): Matches on this platform in the window.
@@ -607,32 +678,37 @@ The group the keyword belongs to.
 - `values` (array of string, required): What it adds (terms, authors), drops (platforms) or writes (the context).
 - `why` (string, required): The reason and the measured effect, in plain words.
 - `patch` (object, required): The body to send to PATCH /v1/keywords/{id} as is to apply it. A list holds the whole new list, current entries kept.
-  - `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, and the keyword keeps its id, its settings and the mentions the old term found. Wrap it in double quotes for the exact phrase only. A 409 when its group already tracks the new term.
+  - `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it.
   - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
   - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
   - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
-  - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or the group's own description (at most 300 characters): what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+  - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
   - `matching` (object): Omitted fields are untouched; an empty list clears one.
     - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
     - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
-    - `requiredGroups` (array of array of string): Combinations of terms, at most 50 of 10 terms each: the post must ALSO contain every term of at least one group (an OR of ANDs). For the keyword inreach, [["weather", "alert*"], ["tsunami"], ["flash flood"]] keeps a post about inReach weather alerts, tsunamis or flash floods, one keyword instead of three. Same phrase and wildcard rules as requiredTerms; when both are set a post must pass both. Empty: no combinations.
+    - `requiredGroups` (array of array of string): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
     - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
-    - `exactPhrase` (boolean): true: only the exact phrase matches. false (default): a multi-word keyword also matches a post holding its words close together, in any order, plurals and spellings (non-profit, nonprofit) included; such a match is kept and billed only when the classifier scores it relevant. A term sent in double quotes sets this to true.
+    - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
     - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
-      - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes. traction: a repository created in the last 30 days reached 10 stars. stars: one with 100 stars or more passed a milestone (100, 250, 500, 1,000, 2,000, 5,000 ...). growth: it gained stars fast in a week. new: every repository created, even with no stars (off by default: nearly all of them are noise for a broad keyword). Default: traction, stars, growth. Empty: no repository events.
+      - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
+
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a milestone (100, 250, 500, 1,000 ...).
+- growth: it gained stars fast in a week.
+- new: every repository created; opt in, mostly noise.
       - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
-      - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days (25 or more). It applies to every event, and one whose last week is not known yet does not pass. null: a growth event needs 100 stars and 20% of the repository's stars in a week, the other events need no growth.
+      - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
     - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
       - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
       - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
   - `cap` (object, nullable): Replaces the mention cap and its period (per, default month); null removes it. A cap above the current period's count resumes a capped keyword at once, one at or under it pauses it.
     - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
-    - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day (from 00:00), week (from Monday 00:00) or month (the calendar month, the default). At the cap the keyword stops until the next period starts, so a daily cap keeps mentions coming every day with a fixed ceiling on spend.
+    - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
   - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
-    - `enabled` (boolean): Read the comments under this keyword's relevant mentions, from 30 minutes after each post, as long as its platform's conversations last (a day to a month). Each comment delivered costs $0.008 (comments of fewer than three words are dropped, never billed) (the comments line of the bill). Off by default.
-    - `maxPerPost` (integer): The newest comments of one thread you receive, 20 by default, 100 at most: the ceiling on what one mention's comments can cost. A comment that names the keyword is a mention too, but only among these newest ones, so it is never billed past the ceiling.
+    - `enabled` (boolean): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+    - `maxPerPost` (integer): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
   - `display` (object): Which of this keyword's mentions you see, by language and country; each list is replaced when sent, kept when omitted. Hidden mentions are still billed.
     - `languages` (object): By the language of the post (ISO 639-1); omitted: untouched.
       - `only` (array of string): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. Replaces the list; [] clears it.
@@ -645,7 +721,7 @@ The group the keyword belongs to.
     - `url` (string): The review page's link: an App Store or Google Play app (https://apps.apple.com/us/app/notion/id1232780281, https://play.google.com/store/apps/details?id=notion.id), a Trustpilot page (https://www.trustpilot.com/review/notion.so) or a Google Maps place (its full link, or a maps.app.goo.gl share link). Or give platform and id.
     - `platform` (string): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
     - `id` (string): The id on the platform: the digits after "id" on the App Store, the package name on Google Play, the company's domain on Trustpilot (notion.so), a Place ID (ChIJ...) on Google Maps.
-    - `countries` (array of string): App Store and Google Play only: storefronts to read, two-letter codes, at most 20. Default: the one in the link, else us. Each is one more poll a day; the same review seen in two storefronts is one mention. Trustpilot and Google Maps have one page for everyone and take none.
+    - `countries` (array of string): App Store and Google Play storefronts to read, as two-letter codes; default the link's, else us. Each adds a daily poll; a review seen in two is one mention. Trustpilot and Google Maps take none.
     - `language` (string): Google Play only: the language of the reviews to read (en, es, de, pt-BR); Google Play answers one language at a time. Default: the link's hl, else en.
   - `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
     - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
@@ -687,7 +763,7 @@ An RSS or Atom feed every keyword of the workspace reads.
 - `url` (string, required): The feed itself (after redirects, or the one the page advertised): what is polled.
 - `title` (string, required, nullable): The feed's own title, when it has one.
 - `connectedAt` (string, required): When the workspace connected it.
-- `readingSince` (string, required): Nothing published before this is a live mention: the connection, or the last time its sign-in was added or removed (signed in and signed out, a post is read as two different posts, so the switch starts over rather than bill one twice).
+- `readingSince` (string, required): Nothing published before this is a live mention: the connection, or the last sign-in change (signed in or out, a post reads as a new one, so it starts over rather than bill twice).
 - `auth` (object, required, nullable): The sign-in the feed is read with, or null for a public feed. PATCH { auth } replaces it, { auth: null } removes it.
   - `type` (string, required): one of `cookie`, `header`. cookie or header. The value is never shown.
 - `health` (object, required): Whether the hourly read works.

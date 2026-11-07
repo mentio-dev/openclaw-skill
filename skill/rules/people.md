@@ -54,7 +54,9 @@ curl -sS "https://api.mentio.dev/v1/people?segmentId=seg_...&sort=reach" -H "Aut
 
 ### GET /v1/people
 
-**List people.** The people behind your mentions: one row per person, with their accounts, reach, public profile, per-workspace stats, your annotations and where your outreach stands. Filter by platform, tag, follower range, mention counts, intents seen, keyword kinds mentioned or never mentioned, outreach stage, owner, automated (bot accounts, whose matched posts are mostly machine-made), or a saved segment. Offset-paginated with a total. With `groupId`, only the people who mentioned that keyword group's keywords, counted over those mentions, with that group's own annotations, merges, outreach and segments.
+**List people.** List the people behind your mentions, with accounts, reach, profile, stats, your annotations and outreach.
+
+Filter by platform, tag, followers, counts, intents, keyword kinds, outreach, automated or segment; offset-paginated. `groupId` scopes it to one keyword group. See [People](/guides/people).
 
 CLI: `mentio people:list`
 
@@ -93,7 +95,9 @@ Returns: 200, `{ data: Person[], total }` (see Shapes below).
 
 ### GET /v1/people/{id}
 
-**Get a person.** One person as your workspace sees them. An account merged into someone resolves to that person. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**Get a person.** One person as your workspace sees them. An account merged into someone resolves to that person.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:get`
 
@@ -109,7 +113,9 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### PATCH /v1/people/{id}
 
-**Update your annotations on a person.** Tags, notes, mute, and the outreach owner (a workspace member; null clears) and stage, for your workspace only. Mute hides their posts from your feed and every channel; ingest and billing never change. With `groupId` the annotations are that keyword group's own: `muted` hides the person, and the accounts that group merged into them, from the mentions of that group's keywords only (feed, alerts and digests), and the group's tags show on those mentions next to the workspace's. A mute set without `groupId` hides them everywhere.
+**Update your annotations on a person.** Set a person's tags, notes, mute, outreach owner and stage, for your workspace only.
+
+Mute hides their posts from the feed and every channel; billing never changes. With `groupId` the annotations are that group's own; see [People](/guides/people).
 
 CLI: `mentio people:update`
 
@@ -125,7 +131,7 @@ Body (JSON): Omitted fields are untouched.
 
 - `tags` (array of string): Replaces the whole list.
 - `notes` (string)
-- `muted` (boolean): true hides their posts from the feed, the alerts and the digests; false shows them again. Without groupId, for every keyword of the workspace; with groupId, for the mentions of that group's keywords only, leaving the workspace's mute as it is.
+- `muted` (boolean): true hides their posts from the feed, alerts and digests; false shows them again. Without groupId for the whole workspace; with it, for that group's keywords only.
 - `ownerId` (string, nullable): The member who owns the contact (user id); null clears.
 - `stage` (string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
 
@@ -133,7 +139,11 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### GET /v1/people/{id}/activities
 
-**List outreach activities.** Every logged contact with this person across all their accounts, newest first (at most 200): who reached out, the channel, when, and a short note. Read it before reaching out so two teammates never contact the same person without knowing. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**List outreach activities.** List every logged contact with this person, newest first (at most 200): who, channel, when, note.
+
+Read it before reaching out.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:activities`
 
@@ -149,7 +159,11 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 
 ### POST /v1/people/{id}/activities
 
-**Log an outreach activity.** Record that a teammate reached out to this person: an email, a DM, a call. The first activity claims an unowned person for whoever reached out and moves not_contacted to contacted; an existing owner and a later stage are kept. `memberId` defaults to the signed-in member; an API key that omits it logs an unattributed activity, which claims nobody. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**Log an outreach activity.** Record that a teammate reached out to this person: an email, a DM, a call.
+
+The first claims an unowned person and marks them contacted; without `memberId`, a key's activity claims nobody.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:log-activity`
 
@@ -172,7 +186,9 @@ Returns: 201, a `PersonActivity` (see Shapes below).
 
 ### DELETE /v1/people/{id}/activities/{activityId}
 
-**Delete an outreach activity.** Remove a contact logged by mistake. The person's owner and stage stay as they are. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**Delete an outreach activity.** Remove a contact logged by mistake. The person's owner and stage stay as they are.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:delete-activity`
 
@@ -189,7 +205,11 @@ Returns: 204, no body.
 
 ### POST /v1/people/{id}/merge
 
-**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only. Their mentions, tags, notes and outreach activities combine under the person named by `into`, which keeps its owner and stage unless it had none. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**Merge an account into a person.** Declare that this account and another person are the same human, for your workspace only.
+
+Everything combines under `into`, which keeps its owner and stage unless it had none.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:merge`
 
@@ -209,7 +229,9 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### POST /v1/people/{id}/split
 
-**Undo a merge.** The account becomes its own person again. With `groupId`, the call works inside that keyword group: its people, and its own tags, notes, mute, merges and activities, apart from the workspace's and from every other group's.
+**Undo a merge.** The account becomes its own person again.
+
+With `groupId`, it acts inside that keyword group; see [Groups](/guides/groups#people-and-segments-by-group).
 
 CLI: `mentio people:split`
 
@@ -225,7 +247,9 @@ Returns: 200, a `Person` (see Shapes below).
 
 ### GET /v1/people/export.csv
 
-**Export people as CSV.** The same list as GET /v1/people (segmentId included) as CSV, one row per person with their contact columns: handle, followers, email, website, company, location, tags, then outreach stage, owner and last contacted. Capped at 5,000 people. `groupId` scopes the export like the list. At most 6 exports per minute per workspace; a 429 carries Retry-After.
+**Export people as CSV.** Export the GET /v1/people list as CSV, one row per person with contact and outreach columns.
+
+Capped at 5,000 people; 6 exports a minute. See [Exports](/guides/exports#people-columns).
 
 CLI: `mentio people:export`
 
@@ -262,7 +286,9 @@ Returns: 200, CSV text.
 
 ### GET /v1/segments
 
-**List segments.** Your saved segments, each with the number of people in it right now (segments are evaluated on every read, never materialized), plus presets you can save as a starting point. Pass a segment id to GET /v1/people to list its members. With `groupId`, that keyword group's own segments, counted over its own people; without it, the workspace's. A segment belongs to one scope and is not visible from another.
+**List segments.** List your saved segments with live member counts, plus presets to start from.
+
+Pass a segment id to GET /v1/people for its members. `groupId` reads that group's own segments; each belongs to one scope.
 
 CLI: `mentio segments:list`
 
@@ -274,7 +300,9 @@ Returns: 200, `{ data: Segment[], presets }` (see Shapes below).
 
 ### POST /v1/segments
 
-**Create a segment.** Save a named filter over your people. With `groupId` the segment belongs to that keyword group: it is listed, counted and changed only there, and its name only has to be unique in the group.
+**Create a segment.** Save a named filter over your people.
+
+With `groupId` the segment belongs to that keyword group: it is listed, counted and changed only there, and its name only has to be unique in the group.
 
 CLI: `mentio segments:create`
 
