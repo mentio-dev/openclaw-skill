@@ -8,7 +8,7 @@ Outreach is logged, not guessed: `POST /v1/people/{id}/activities` records that 
 
 Sorting answers most questions: `reach` for influencers, `new` for new voices, `mentions` for the loudest, `recent` for the latest. Filters stack: `minFollowers`, `intents`, `keywordKinds` (people who mentioned a competitor), `neverKeywordKinds` (and never the brand), `newSinceDays`, `tags`, `linkHosts` (people who have shared a link to that host). The list is offset-paginated (`{ data, total }`, `limit` and `offset`).
 
-A segment is a saved people filter with a name, evaluated live on every read (`GET /v1/segments` returns each with its current size and a few presets to save as a starting point); pass `segmentId` to `GET /v1/people` to list its members. Annotations are per workspace: tags and notes for the user's own organization, `muted` hides the person's posts from the feed and every channel without touching ingest or billing. A merge declares two accounts one human; a split undoes it. Confirm before merging or deleting a segment.
+A segment is a saved people filter with a name, evaluated live on every read (`GET /v1/segments` returns each with its current size; `GET /v1/segments/presets` lists a few to save as a starting point); pass `segmentId` to `GET /v1/people` to list its members. Annotations are per workspace: tags and notes for the user's own organization, `muted` hides the person's posts from the feed and every channel without touching ingest or billing. A merge declares two accounts one human; a split undoes it. Confirm before merging or deleting a segment.
 
 Base URL `https://api.mentio.dev`, `Authorization: Bearer $MENTIO_API_KEY` on every request, JSON in and out. The `mentio` CLI command for each endpoint is listed for when it is installed (rules/cli.md).
 
@@ -51,6 +51,7 @@ curl -sS "https://api.mentio.dev/v1/people?segmentId=seg_...&sort=reach" -H "Aut
 | `GET` | `/v1/segments/{id}` | `mentio segments:get` | Get a segment |
 | `PATCH` | `/v1/segments/{id}` | `mentio segments:update` | Update a segment |
 | `DELETE` | `/v1/segments/{id}` | `mentio segments:delete` | Delete a segment |
+| `GET` | `/v1/segments/presets` | `mentio segments:presets` | List segment presets |
 
 ### GET /v1/people
 
@@ -294,7 +295,7 @@ Returns: 200, CSV text.
 
 ### GET /v1/segments
 
-**List segments.** List your saved segments with live member counts, plus presets to start from.
+**List segments.** List your saved segments with live member counts.
 
 Pass a segment id to GET /v1/people for its members. `groupId` reads that group's own segments; each belongs to one scope.
 
@@ -416,6 +417,14 @@ Query:
 
 Returns: 204, no body.
 
+### GET /v1/segments/presets
+
+**List segment presets.** Suggested segments to start from, the same for every workspace. Save one with POST /v1/segments and its `filter`.
+
+CLI: `mentio segments:presets`
+
+Returns: 200, a `InvoiceList` (see Shapes below).
+
 ## Shapes
 
 ### Person
@@ -490,6 +499,31 @@ Returns: 204, no body.
   - `email` (string, required, nullable)
 - `occurredAt` (string, required): When the contact happened.
 - `createdAt` (string, required): When it was logged.
+
+### SegmentPreset
+
+- `key` (string, required): Stable id of the preset (influencers, champions, ...).
+- `name` (string, required): Suggested segment name.
+- `description` (string, required): What the segment holds, in one sentence.
+- `filter` (object, required): The filter to save with POST /v1/segments.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
+  - `tags` (array of string): People carrying any of these tags.
+  - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
+  - `maxFollowers` (integer): At most this many followers. Unknown reach never matches.
+  - `minMentions` (integer): At least this many matched mentions.
+  - `minNegative` (integer): At least this many negative mentions.
+  - `intents` (array of string): At least one mention carrying any of these intents.
+  - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
+  - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
+  - `notTags` (array of string): Nobody carrying any of these tags.
+  - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
+  - `newSinceDays` (integer): First seen within this many days.
+  - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
+  - `muted` (boolean): true: only muted people; false: only unmuted.
+  - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
+  - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 ### Segment
 
