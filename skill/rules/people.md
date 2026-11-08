@@ -90,6 +90,9 @@ Query:
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages. Repeatable, or comma-separated.
+- `notLinkHosts` (array of string, nullable): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
+- `notOwnerIds` (array of string, nullable): Nobody owned by these members (user ids); `none` drops the people nobody owns. Repeatable, or comma-separated.
 - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest; omitted: everyone.
 - `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
@@ -135,7 +138,7 @@ Query:
 Body (JSON): Omitted fields are untouched.
 
 - `tags` (array of string): Replaces the whole list.
-- `notes` (string)
+- `notes` (string): Notes, up to 2,000 characters; replaces the current notes.
 - `muted` (boolean): true hides their posts from the feed, alerts and digests; false shows them again. Without groupId for the whole workspace; with it, for that group's keywords only.
 - `ownerId` (string, nullable): The member who owns the contact (user id); null clears.
 - `stage` (string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
@@ -287,6 +290,9 @@ Query:
 - `newSinceDays` (integer): First seen within this many days.
 - `linkHosts` (array of string, nullable): People with at least one mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
 - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages. Repeatable, or comma-separated.
+- `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages. Repeatable, or comma-separated.
+- `notLinkHosts` (array of string, nullable): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it. Repeatable, or comma-separated.
+- `notOwnerIds` (array of string, nullable): Nobody owned by these members (user ids); `none` drops the people nobody owns. Repeatable, or comma-separated.
 - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest; omitted: everyone.
 - `ownerIds` (array of string, nullable): People owned by any of these members (user ids); `none` matches people nobody owns. Repeatable, or comma-separated.
 - `sort` (string): one of `mentions`, `recent`, `reach`, `new`. mentions: most matches first. recent: last seen first. reach: most followers first, unknown last. new: first seen most recently first.
@@ -321,9 +327,9 @@ Query:
 
 Body (JSON):
 
-- `name` (string, required)
-- `description` (string)
-- `filter` (object)
+- `name` (string, required): Segment name, unique in its scope.
+- `description` (string): What the segment is for.
+- `filter` (object): The people filter (the fields of GET /v1/people).
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
@@ -340,6 +346,9 @@ Body (JSON):
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages.
+  - `notLinkHosts` (array of string): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it.
+  - `notOwnerIds` (array of string): Nobody owned by these members (user ids); "none" drops the people nobody owns.
   - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
@@ -377,8 +386,8 @@ Query:
 
 Body (JSON): Omitted fields are untouched.
 
-- `name` (string)
-- `description` (string)
+- `name` (string): Segment name, unique in its scope.
+- `description` (string): What the segment is for.
 - `filter` (object): Replaces the whole filter.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
@@ -396,6 +405,9 @@ Body (JSON): Omitted fields are untouched.
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages.
+  - `notLinkHosts` (array of string): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it.
+  - `notOwnerIds` (array of string): Nobody owned by these members (user ids); "none" drops the people nobody owns.
   - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
@@ -434,7 +446,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 - `name` (string, required, nullable): Display name as of their newest post; null when the platform has none.
 - `handle` (string, required, nullable): Platform handle of the canonical account, formatted as the platform shows it.
 - `url` (string, required, nullable): Profile URL of the canonical account.
-- `avatarUrl` (string, required, nullable)
+- `avatarUrl` (string, required, nullable): Profile picture URL.
 - `accounts` (array of object, required): Every account this workspace treats as this person, the canonical one first.
   - `id` (string, required): The account id (aut_...); the canonical one equals the person id.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, facebook, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
@@ -442,37 +454,37 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `handle` (string, required, nullable): Platform handle derived from the profile URL, formatted as the platform shows it.
   - `url` (string, required, nullable): Profile URL.
 - `reach` (object, required): Platform counts as of their newest post; null where the platform has no such number.
-  - `followers` (integer, required, nullable)
-  - `following` (integer, required, nullable)
-  - `posts` (integer, required, nullable)
+  - `followers` (integer, required, nullable): Followers when last seen; null when unknown.
+  - `following` (integer, required, nullable): Accounts they follow; null when unknown.
+  - `posts` (integer, required, nullable): Posts on the platform; null when unknown.
 - `profile` (object, required, nullable): Public profile facts; null until looked up.
-  - `bio` (string, required, nullable)
-  - `company` (string, required, nullable)
-  - `location` (string, required, nullable)
-  - `website` (string, required, nullable)
+  - `bio` (string, required, nullable): The profile's bio, as the platform shows it.
+  - `company` (string, required, nullable): Company named on the profile.
+  - `location` (string, required, nullable): Location named on the profile.
+  - `website` (string, required, nullable): Website linked from the profile.
   - `email` (string, required, nullable): Only when the person made it public on the platform.
   - `links` (array of object, required): Other accounts the person lists on their profile.
-    - `provider` (string, required)
-    - `url` (string, required)
+    - `provider` (string, required): The platform or kind of the linked account (github, x, website, ...).
+    - `url` (string, required): Link to the account.
   - `fetchedAt` (string, required): When the profile was read.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match of theirs for this workspace, relevant or not.
   - `relevant` (integer, required): Of those, scored relevant.
-  - `sentiment` (object, required)
-    - `positive` (integer, required)
-    - `neutral` (integer, required)
-    - `negative` (integer, required)
+  - `sentiment` (object, required): Their matched mentions by sentiment.
+    - `positive` (integer, required): Scored positive.
+    - `neutral` (integer, required): Scored neutral.
+    - `negative` (integer, required): Scored negative.
   - `firstSeenAt` (string, required): Their oldest matched post.
   - `lastSeenAt` (string, required): Their newest matched post.
 - `annotations` (object, required): What this workspace wrote about the person.
-  - `tags` (array of string, required)
-  - `notes` (string, required)
+  - `tags` (array of string, required): Tags your team gave them.
+  - `notes` (string, required): Your team's notes.
   - `muted` (boolean, required): Their posts stay out of the feed and every channel; ingest and billing are untouched. Read with groupId it is that group's own mute, which hides them from the mentions of that group's keywords only.
 - `outreach` (object, required): Where your workspace stands with the person. The first logged activity claims an unowned person for whoever reached out and moves not_contacted to contacted.
   - `owner` (object, required, nullable): The teammate who owns the contact; null when nobody does, or the owner left the workspace.
     - `id` (string, required): User id of the workspace member.
-    - `name` (string, required, nullable)
-    - `email` (string, required, nullable)
+    - `name` (string, required, nullable): The member's name.
+    - `email` (string, required, nullable): The member's email.
   - `stage` (string, required): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Where your workspace stands with the person: not_contacted, contacted, replied, in_talks, customer or not_a_fit.
   - `lastContactedAt` (string, required, nullable): The newest logged activity; null when nobody logged a contact.
 
@@ -495,8 +507,8 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 - `note` (string, required): What was sent or said, briefly; empty when nothing was written.
 - `member` (object, required, nullable): Who reached out; null when an API key logged it without naming a member, or that member left the workspace.
   - `id` (string, required): User id of the workspace member.
-  - `name` (string, required, nullable)
-  - `email` (string, required, nullable)
+  - `name` (string, required, nullable): The member's name.
+  - `email` (string, required, nullable): The member's email.
 - `occurredAt` (string, required): When the contact happened.
 - `createdAt` (string, required): When it was logged.
 
@@ -522,15 +534,18 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages.
+  - `notLinkHosts` (array of string): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it.
+  - `notOwnerIds` (array of string): Nobody owned by these members (user ids); "none" drops the people nobody owns.
   - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 
 ### Segment
 
 - `id` (string, required): Segment id (seg_...).
-- `name` (string, required)
-- `description` (string, required)
-- `filter` (object, required)
+- `name` (string, required): Segment name.
+- `description` (string, required): What the segment is for.
+- `filter` (object, required): The people filter it saves (the fields of GET /v1/people).
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
@@ -547,6 +562,9 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `linkHosts` (array of string): At least one mention linking to any of these hosts, the host itself or a subdomain of it.
   - `muted` (boolean): true: only muted people; false: only unmuted.
   - `stages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. People at any of these outreach stages.
+  - `notStages` (array of string): one of `not_contacted`, `contacted`, `replied`, `in_talks`, `customer`, `not_a_fit`. Nobody at these outreach stages.
+  - `notLinkHosts` (array of string): Nobody with a mention linking to any of these hosts, the host itself or a subdomain of it.
+  - `notOwnerIds` (array of string): Nobody owned by these members (user ids); "none" drops the people nobody owns.
   - `automated` (boolean): true: only people whose matched posts are mostly machine-made (bot accounts); false: only the rest.
   - `ownerIds` (array of string): People owned by any of these members (user ids); "none" matches people nobody owns.
 - `groupId` (string, required, nullable): The group this segment belongs to, or null for a workspace segment.

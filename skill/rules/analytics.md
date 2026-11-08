@@ -51,6 +51,8 @@ Query:
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension to group by:
@@ -84,6 +86,8 @@ Query:
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `bucket` (string): one of `day`, `week`. Series bucket: day (default up to 90 days) or week.
@@ -105,6 +109,8 @@ Query:
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `bucket` (string): one of `hour`, `day`, `week`, `month`. Point granularity: hour (windows of at most 14 days), day, week (Monday start) or month. Default: day up to 90 days, week beyond.
@@ -129,6 +135,8 @@ Query:
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -149,6 +157,8 @@ Query:
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -211,29 +221,29 @@ The group the keyword belongs to.
   - `days` (integer, required): Length of the window in days.
   - `timezone` (string, required): IANA zone the days were cut in.
   - `bucket` (string, required): one of `day`, `week`. How the page series are cut: day up to 90 days, else week, unless asked.
-- `totals` (object, required)
+- `totals` (object, required): The window's review count and average rating.
   - `reviews` (integer, required): Reviews published in the window; a review matched by two keywords counts once.
   - `averageRating` (number, required, nullable): Average stars, one decimal; null with no reviews.
   - `distribution` (object, required): Reviews per star rating.
-    - `1` (integer, required)
-    - `2` (integer, required)
-    - `3` (integer, required)
-    - `4` (integer, required)
-    - `5` (integer, required)
+    - `1` (integer, required): One star.
+    - `2` (integer, required): Two stars.
+    - `3` (integer, required): Three stars.
+    - `4` (integer, required): Four stars.
+    - `5` (integer, required): Five stars.
   - `responded` (integer, required): Reviews carrying the owner's or developer's reply (the App Store's feed has none).
   - `openNegative` (integer, required): 1 and 2 star reviews nobody has marked done or ignored yet.
 - `tags` (array of object, required): Intent and topic tags on the 1 and 2 star reviews, most frequent first: what the unhappy ones are about.
-  - `tag` (string, required)
-  - `count` (integer, required)
+  - `tag` (string, required): The intent or topic tag.
+  - `count` (integer, required): Reviews carrying it.
 - `pages` (array of object, required): One row per review page with reviews in the window, most reviewed first.
   - `reviews` (integer, required): Reviews published in the window; a review matched by two keywords counts once.
   - `averageRating` (number, required, nullable): Average stars, one decimal; null with no reviews.
   - `distribution` (object, required): Reviews per star rating.
-    - `1` (integer, required)
-    - `2` (integer, required)
-    - `3` (integer, required)
-    - `4` (integer, required)
-    - `5` (integer, required)
+    - `1` (integer, required): One star.
+    - `2` (integer, required): Two stars.
+    - `3` (integer, required): Three stars.
+    - `4` (integer, required): Four stars.
+    - `5` (integer, required): Five stars.
   - `responded` (integer, required): Reviews carrying the owner's or developer's reply (the App Store's feed has none).
   - `openNegative` (integer, required): 1 and 2 star reviews nobody has marked done or ignored yet.
   - `platform` (string, required): one of `appstore`, `googleplay`, `trustpilot`, `googlemaps`. appstore (Apple App Store), googleplay (Google Play), trustpilot (a company's Trustpilot page) or googlemaps (a place's Google reviews).
@@ -241,20 +251,20 @@ The group the keyword belongs to.
   - `url` (string, required): The review page.
   - `series` (array of object, required): Reviews and average stars per bucket, oldest first, every bucket present.
     - `date` (string, required): Bucket start, YYYY-MM-DD.
-    - `reviews` (integer, required)
+    - `reviews` (integer, required): Reviews in the bucket.
     - `averageRating` (number, required, nullable): Average stars, one decimal; null with no reviews.
   - `previous` (object, required, nullable): The period of the same length right before the window, with compare=true; else null.
-    - `reviews` (integer, required)
+    - `reviews` (integer, required): Reviews in the window.
     - `averageRating` (number, required, nullable): Average stars, one decimal; null with no reviews.
 - `previous` (object, required, nullable): Totals for the period right before the window, with compare=true; else null.
   - `reviews` (integer, required): Reviews published in the window; a review matched by two keywords counts once.
   - `averageRating` (number, required, nullable): Average stars, one decimal; null with no reviews.
   - `distribution` (object, required): Reviews per star rating.
-    - `1` (integer, required)
-    - `2` (integer, required)
-    - `3` (integer, required)
-    - `4` (integer, required)
-    - `5` (integer, required)
+    - `1` (integer, required): One star.
+    - `2` (integer, required): Two stars.
+    - `3` (integer, required): Three stars.
+    - `4` (integer, required): Four stars.
+    - `5` (integer, required): Five stars.
   - `responded` (integer, required): Reviews carrying the owner's or developer's reply (the App Store's feed has none).
   - `openNegative` (integer, required): 1 and 2 star reviews nobody has marked done or ignored yet.
 

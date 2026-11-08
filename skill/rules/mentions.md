@@ -103,6 +103,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+- `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -240,6 +241,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+- `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -317,6 +319,7 @@ Query:
 - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
 - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+- `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
 - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -383,6 +386,7 @@ Body (JSON):
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -449,13 +453,14 @@ Path:
 
 Body (JSON):
 
-- `name` (string)
-- `description` (string)
+- `name` (string): View name, unique in the workspace.
+- `description` (string): What the view is for.
 - `filter` (object): Replaces the whole filter.
   - `q` (string): Substring in the post text or the author's name.
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -525,7 +530,7 @@ Returns: 204, no body.
   - `group` (GroupRef, required): The group the keyword belongs to.
   - `matchedAs` (string, required): one of `phrase`, `close_words`. phrase: the post holds the term as written. close_words: it holds the term's words close together, in another order or form (kept and billed only because the classifier scored it relevant).
   - `matchedIn` (string, required): one of `text`, `speech`. text: the term is in the post itself (its text, caption, hashtags or review). speech: it is only in what is said in the video (TikTok), whose transcript follows the 🎙 mark in post.text.
-- `post` (object, required)
+- `post` (object, required): The post: platform, text, link, publish time and engagement.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform: bluesky, hackernews, github, stackoverflow, devto, reddit, x, youtube, news, linkedin, tiktok, instagram, facebook, appstore (App Store reviews), googleplay (Google Play reviews), trustpilot (Trustpilot reviews), googlemaps (Google reviews of a place), rss (RSS and Atom feeds a keyword reads).
   - `kind` (string, required): one of `post`, `comment`, `repository`. post: a top-level post. comment: answers a post or comment (Reddit, Hacker News or YouTube comments, X or Bluesky replies, Stack Overflow answers). repository: a GitHub repository event (see post.repository).
   - `url` (string, required): Permalink of the post.
@@ -548,12 +553,12 @@ Returns: 204, no body.
   - `links` (array of string, required): Links the post carries, in the order written, at most 20. Empty for a post with none, and for posts ingested before September 2026.
   - `publishedAt` (string, required): When the post was published.
   - `engagement` (object, required, nullable): Counts as the platform reported them at ingest, usually minutes after posting; a missing count is null. Null as a whole when a platform reports none, or before September 2026. X carries all six.
-    - `likes` (integer, required, nullable)
-    - `reposts` (integer, required, nullable)
-    - `replies` (integer, required, nullable)
-    - `quotes` (integer, required, nullable)
-    - `views` (integer, required, nullable)
-    - `bookmarks` (integer, required, nullable)
+    - `likes` (integer, required, nullable): Likes or upvotes when the post was ingested; null when the platform does not report them.
+    - `reposts` (integer, required, nullable): Reposts or shares when ingested; null when not reported.
+    - `replies` (integer, required, nullable): Replies or comments when ingested; null when not reported.
+    - `quotes` (integer, required, nullable): Quotes when ingested; null when not reported.
+    - `views` (integer, required, nullable): Views when ingested; null when not reported.
+    - `bookmarks` (integer, required, nullable): Bookmarks or saves when ingested; null when not reported.
   - `replyTo` (object, required, nullable): The post or comment this one answers; null for top-level posts.
     - `author` (string, required, nullable): Parent post author as the platform names them.
     - `url` (string, required, nullable): Parent post URL.
@@ -582,7 +587,7 @@ Returns: 204, no body.
     - `url` (string, required): The app's store listing.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
-  - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
+  - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. positive, neutral or negative; null until classified.
   - `intents` (array of string, required): Intent and topic tags:
 
 - buy_intent, question, complaint, praise, comparison, bug_report, pricing, hiring, event, promotional.
@@ -606,11 +611,11 @@ Returns: 204, no body.
     - `original` (object, required): The classifier values your feedback replaced.
       - `relevance` (integer, required, nullable): What the classifier scored before your verdict; null if it had not scored it.
       - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. The sentiment the classifier gave before your correction.
-- `triage` (object, required)
+- `triage` (object, required): What your team did with it: status, assignee, snooze and notes.
   - `assignee` (object, required, nullable): Workspace member this mention is assigned to; null when unassigned.
-    - `id` (string, required)
-    - `name` (string, required, nullable)
-    - `email` (string, required, nullable)
+    - `id` (string, required): User id.
+    - `name` (string, required, nullable): Member name.
+    - `email` (string, required, nullable): Member email.
   - `snoozedUntil` (string, required, nullable): Until when the mention stays out of the feed; null when not snoozed.
   - `note` (string, required, nullable): Internal note; null when none.
 - `duplicateOf` (string, required, nullable): On a cross-post (same author, text and keyword within three days), the original's id. Billed like any mention, listed only under its original, never alerted alone. null for an original. See [Cross-posts](/how-it-works#cross-posts).
@@ -657,14 +662,14 @@ The group the keyword belongs to.
   - `avatarUrl` (string, required, nullable): Their profile picture, when the platform sends one.
 - `parentCommentId` (string, required, nullable): The comment this one answers, when it is a reply inside the thread; null for a comment on the post itself.
 - `engagement` (object, required, nullable): Counts as the platform reported them at ingest, usually minutes after posting; a missing count is null. Null as a whole when a platform reports none, or before September 2026. X carries all six.
-  - `likes` (integer, required, nullable)
-  - `reposts` (integer, required, nullable)
-  - `replies` (integer, required, nullable)
-  - `quotes` (integer, required, nullable)
-  - `views` (integer, required, nullable)
-  - `bookmarks` (integer, required, nullable)
+  - `likes` (integer, required, nullable): Likes or upvotes when the post was ingested; null when the platform does not report them.
+  - `reposts` (integer, required, nullable): Reposts or shares when ingested; null when not reported.
+  - `replies` (integer, required, nullable): Replies or comments when ingested; null when not reported.
+  - `quotes` (integer, required, nullable): Quotes when ingested; null when not reported.
+  - `views` (integer, required, nullable): Views when ingested; null when not reported.
+  - `bookmarks` (integer, required, nullable): Bookmarks or saves when ingested; null when not reported.
 - `classification` (object, required, nullable): A light read of the comment (sentiment and intent tags); null until it is scored, usually minutes after the thread arrives.
-  - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. Classifier sentiment.
+  - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. positive, neutral or negative; null until classified.
   - `intents` (array of string, required): Intent and topic tags, the same vocabulary as a mention's.
 - `mentionId` (string, required, nullable): When this comment itself names one of your keywords, its mention (mm_...), with the full verdict. Null otherwise.
 
@@ -676,6 +681,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `keywordIds` (array of string): Only matches of any of these keywords.
 - `notKeywordIds` (array of string): Never matches of these keywords.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+- `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
 - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
 - `notGroupIds` (array of string): Never matches of keywords in these groups.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -729,13 +735,14 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 ### View
 
 - `id` (string, required): View id (vw_...).
-- `name` (string, required)
-- `description` (string, required)
-- `filter` (object, required)
+- `name` (string, required): View name.
+- `description` (string, required): What the view is for.
+- `filter` (object, required): The mentions filter it saves (the fields of GET /v1/mentions).
   - `q` (string): Substring in the post text or the author's name.
   - `keywordIds` (array of string): Only matches of any of these keywords.
   - `notKeywordIds` (array of string): Never matches of these keywords.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+  - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
   - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
   - `notGroupIds` (array of string): Never matches of keywords in these groups.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.

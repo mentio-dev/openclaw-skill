@@ -532,8 +532,8 @@ The group the keyword belongs to.
 ### Keyword
 
 - `id` (string, required): Keyword id (kw_...).
-- `term` (string, required)
-- `kind` (string, required): one of `brand`, `competitor`, `topic`
+- `term` (string, required): The tracked text, as typed.
+- `kind` (string, required): one of `brand`, `competitor`, `topic`. brand (your own name), competitor, or topic.
 - `muted` (boolean, required): Not polled or matched. Paused by you, by the wallet (see pausedForBalance) or by the noise brake (see pausedForNoise). A keyword at its mention cap is not muted (see pausedForCap).
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
 - `pausedForNoise` (boolean, required): Muted by the noise brake: under 30% of 20 or more scored matches were relevant, on welcome credit. Changing its rules, platforms or context, or unmuting, resumes it (balance permitting); a top-up does not. See [Billing](/billing).

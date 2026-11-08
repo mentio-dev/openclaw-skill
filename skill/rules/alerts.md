@@ -89,10 +89,10 @@ CLI: `mentio alerts:create`
 
 Body (JSON):
 
-- `name` (string, required)
-- `enabled` (boolean)
+- `name` (string, required): Rule name.
+- `enabled` (boolean): false: the rule sends nothing. Default true.
 - `mode` (string): one of `instant`, `hourly`, `daily`, `weekly`
-- `filter` (object)
+- `filter` (object): Which mentions the rule sends. Default: every relevant mention.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
@@ -119,10 +119,10 @@ Body (JSON):
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
   - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object): Required for daily and weekly alerts (weekly ones also need schedule.weekday). Hourly alerts take none: they send every UTC hour, so a time of day and a zone are ignored and a weekday is refused.
-  - `hour` (integer, required)
-  - `minute` (integer)
-  - `timezone` (string, required)
-  - `skipEmpty` (boolean)
+  - `hour` (integer, required): Hour of the day to send, 0 to 23, in timezone.
+  - `minute` (integer): Minute past the hour, 0 to 59.
+  - `timezone` (string, required): IANA zone the schedule runs in (Europe/Madrid).
+  - `skipEmpty` (boolean): true: send nothing when the window had no mention.
   - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, nullable): Custom event name for webhook payloads; null for the mode default.
 - `channelIds` (array of string): Channel ids from GET /v1/channels.
@@ -153,8 +153,8 @@ Path:
 
 Body (JSON): Omitted fields are untouched.
 
-- `name` (string)
-- `enabled` (boolean)
+- `name` (string): Rule name.
+- `enabled` (boolean): false: the rule sends nothing.
 - `mode` (string): one of `instant`, `hourly`, `daily`, `weekly`
 - `filter` (object): Replaces the whole filter.
   - `keywordIds` (array of string): Only these keywords.
@@ -183,10 +183,10 @@ Body (JSON): Omitted fields are untouched.
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
   - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object, nullable): Daily and weekly alerts. Ignored on an hourly one, except a weekday, which is refused.
-  - `hour` (integer, required)
-  - `minute` (integer)
-  - `timezone` (string, required)
-  - `skipEmpty` (boolean)
+  - `hour` (integer, required): Hour of the day to send, 0 to 23, in timezone.
+  - `minute` (integer): Minute past the hour, 0 to 59.
+  - `timezone` (string, required): IANA zone the schedule runs in (Europe/Madrid).
+  - `skipEmpty` (boolean): true: send nothing when the window had no mention.
   - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, nullable)
 - `channelIds` (array of string): Replaces the whole list.
@@ -236,12 +236,12 @@ Path:
 Returns: 200, an object:
 
 - `skipped` (string, required, nullable): one of `already_sent`, `empty`, `expired`, `in_flight`. Why nothing was sent: the period already went out, nothing to show, an hourly retry window closed, or another run is sending it now.
-- `matched` (integer, required)
-- `relevant` (integer, required)
-- `outcomes` (array of object, required)
-  - `channelId` (string, required)
-  - `ok` (boolean, required)
-  - `error` (string, required, nullable)
+- `matched` (integer, required): Matches in the window.
+- `relevant` (integer, required): Relevant matches in the window.
+- `outcomes` (array of object, required): One result per channel.
+  - `channelId` (string, required): The channel (dest_...).
+  - `ok` (boolean, required): Whether the channel accepted it.
+  - `error` (string, required, nullable): Why it failed; null when it did not.
 
 ### POST /v1/alerts/{id}/test
 
@@ -255,10 +255,10 @@ Path:
 
 Returns: 200, an object:
 
-- `outcomes` (array of object, required)
-  - `channelId` (string, required)
-  - `ok` (boolean, required)
-  - `error` (string, required, nullable)
+- `outcomes` (array of object, required): One result per channel of the rule.
+  - `channelId` (string, required): The channel (dest_...).
+  - `ok` (boolean, required): Whether the channel accepted it.
+  - `error` (string, required, nullable): Why it failed; null when it did not.
 
 ### POST /v1/alerts/{id}/unmute
 
@@ -295,16 +295,16 @@ CLI: `mentio channels:create`
 Body (JSON):
 
 - Variant 1 (`kind` = `slack`):
-  - `kind` (string, required): one of `slack`
+  - `kind` (string, required): one of `slack`. Channel kind.
   - `channelId` (string, required): A Slack channel id from the connected workspace.
   - `channelName` (string, required): The channel name, for the label.
   - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
 - Variant 2 (`kind` = `email`):
-  - `kind` (string, required): one of `email`
+  - `kind` (string, required): one of `email`. Channel kind.
   - `emails` (array of string, required): Each address gets a confirmation link; workspace members are confirmed on sight.
   - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
 - Variant 3 (`kind` = `webhook`):
-  - `kind` (string, required): one of `webhook`
+  - `kind` (string, required): one of `webhook`. Channel kind.
   - `url` (string, required): Where the signed POSTs go. https in production.
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
@@ -336,7 +336,7 @@ Path:
 
 Body (JSON): Omitted fields are untouched.
 
-- `label` (string)
+- `label` (string): Your name for the channel.
 - `url` (string): Webhooks only.
 - `headers` (object): Webhooks only; replaces the whole set.
 - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email and Telegram take the attention events only. See [Account events](/webhooks/account-events).
@@ -396,10 +396,10 @@ Path:
 
 Returns: 200, an object:
 
-- `outcomes` (array of object, required)
-  - `channelId` (string, required)
-  - `ok` (boolean, required)
-  - `error` (string, required, nullable)
+- `outcomes` (array of object, required): The test send's result.
+  - `channelId` (string, required): The channel (dest_...).
+  - `ok` (boolean, required): Whether the channel accepted it.
+  - `error` (string, required, nullable): Why it failed; null when it did not.
 
 ### GET /v1/attention
 
@@ -442,6 +442,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `keywordIds` (array of string): Only matches of any of these keywords.
 - `notKeywordIds` (array of string): Never matches of these keywords.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic.
+- `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
 - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
 - `notGroupIds` (array of string): Never matches of keywords in these groups.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
@@ -495,15 +496,15 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 ### Alert
 
 - `id` (string, required): Alert id (feed_...).
-- `name` (string, required)
-- `enabled` (boolean, required)
+- `name` (string, required): Rule name.
+- `enabled` (boolean, required): false: the rule sends nothing.
 - `mode` (string, required): one of `instant`, `hourly`, `daily`, `weekly`. When it sends; see [Alerts](/alerts).
 
 - instant: each matching mention as it happens.
 - hourly: the previous UTC hour, at five past; never email.
 - daily: one digest at the scheduled local time.
 - weekly: one digest a week, on schedule.weekday.
-- `filter` (object, required)
+- `filter` (object, required): Which mentions the rule sends.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
   - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
@@ -530,16 +531,16 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minBookmarks` (integer): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
   - `anyOf` (array of FilterGroup): OR across groups: a mention passes when it meets every condition of at least one group, and the other conditions too. A group takes view-filter conditions, no anyOf of its own. See [anyOf](/conventions#or-across-groups-anyof).
 - `schedule` (object, required, nullable): Daily and weekly alerts only; null for instant and hourly ones.
-  - `hour` (integer, required)
-  - `minute` (integer)
-  - `timezone` (string, required)
-  - `skipEmpty` (boolean)
+  - `hour` (integer, required): Hour of the day to send, 0 to 23, in timezone.
+  - `minute` (integer): Minute past the hour, 0 to 59.
+  - `timezone` (string, required): IANA zone the schedule runs in (Europe/Madrid).
+  - `skipEmpty` (boolean): true: send nothing when the window had no mention.
   - `weekday` (integer): Weekly rules: the day it sends, 0 Sunday to 6 Saturday. Required for mode weekly; ignored on daily rules.
 - `event` (string, required): Event name carried in webhook payloads; the mode default unless you set one.
 - `channels` (array of object, required): Where it sends.
-  - `id` (string, required)
-  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`
-  - `label` (string, required)
+  - `id` (string, required): Channel id (dest_...).
+  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`. Channel kind.
+  - `label` (string, required): Channel name.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `sentLast7d` (integer, required): Deliveries in the last 7 days, across channels.
   - `lastSentAt` (string, required, nullable): ISO 8601 timestamp, UTC.
@@ -549,17 +550,17 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 ### SlackChannel
 
 - `id` (string, required): Channel id (dest_...).
-- `label` (string, required)
+- `label` (string, required): Your name for the channel.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `alerts` (integer, required): Alerts sending to this channel.
   - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
   - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
   - `last7d` (object, required): Deliveries in the last 7 days.
-    - `total` (integer, required)
-    - `failed` (integer, required)
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-- `kind` (string, required): one of `slack`
-- `config` (object, required)
+- `kind` (string, required): one of `slack`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `channelId` (string, required): Slack channel id.
   - `channelName` (string, required): Slack channel name, without the #.
   - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
@@ -567,36 +568,36 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 ### EmailChannel
 
 - `id` (string, required): Channel id (dest_...).
-- `label` (string, required)
+- `label` (string, required): Your name for the channel.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `alerts` (integer, required): Alerts sending to this channel.
   - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
   - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
   - `last7d` (object, required): Deliveries in the last 7 days.
-    - `total` (integer, required)
-    - `failed` (integer, required)
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-- `kind` (string, required): one of `email`
-- `config` (object, required)
+- `kind` (string, required): one of `email`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `recipients` (array of object, required): Every address on the list and whether it confirmed.
-    - `email` (string, required)
+    - `email` (string, required): Recipient address.
     - `confirmedAt` (string, required, nullable): Null until the address confirmed through its link; unconfirmed addresses receive nothing.
   - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### WebhookChannel
 
 - `id` (string, required): Channel id (dest_...).
-- `label` (string, required)
+- `label` (string, required): Your name for the channel.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `alerts` (integer, required): Alerts sending to this channel.
   - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
   - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
   - `last7d` (object, required): Deliveries in the last 7 days.
-    - `total` (integer, required)
-    - `failed` (integer, required)
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-- `kind` (string, required): one of `webhook`
-- `config` (object, required)
+- `kind` (string, required): one of `webhook`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
   - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
@@ -605,19 +606,19 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 ### TelegramChannel
 
 - `id` (string, required): Channel id (dest_...).
-- `label` (string, required)
+- `label` (string, required): Your name for the channel.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `alerts` (integer, required): Alerts sending to this channel.
   - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
   - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
   - `last7d` (object, required): Deliveries in the last 7 days.
-    - `total` (integer, required)
-    - `failed` (integer, required)
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
-- `kind` (string, required): one of `telegram`
-- `config` (object, required)
+- `kind` (string, required): one of `telegram`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `chatId` (string, required): Telegram chat id.
-  - `chatType` (string, required): one of `private`, `group`, `supergroup`, `channel`
+  - `chatType` (string, required): one of `private`, `group`, `supergroup`, `channel`. private, group, supergroup or channel.
   - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### Channel

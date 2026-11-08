@@ -95,8 +95,8 @@ CLI: `mentio company:update`
 
 Body (JSON): Omitted fields are untouched.
 
-- `name` (string)
-- `description` (string)
+- `name` (string): Company name.
+- `description` (string): What the company does; the classifier reads it.
 - `useCases` (array of string): Replaces the whole list.
 - `accounts` (object)
   - `x` (string, nullable)
@@ -133,7 +133,7 @@ Body (JSON):
 Returns: 201, an object:
 
 - `id` (string, required): Key id (key_...).
-- `name` (string, required)
+- `name` (string, required): Your name for the key.
 - `prefix` (string, required): The first characters of the key, to tell keys apart.
 - `scope` (string, required): one of `read`, `write`. read: GET only. write: everything.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
@@ -194,6 +194,9 @@ Query:
 - `keywordIds` (array of string, nullable): Only these keywords (kw_...), deleted ones included. Repeatable, or comma-separated.
 - `groupIds` (array of string, nullable): Only these groups (grp_...): a keyword-day by the group it was metered under, a mention or a comment by its keyword's group as it is now. Repeatable, or comma-separated.
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. A keyword-day belongs to no platform, so with this filter the keyword line reads 0 and only mentions and comments count. Repeatable, or comma-separated.
+- `notKeywordIds` (array of string, nullable): Never these keywords (kw_...). Repeatable, or comma-separated.
+- `notGroupIds` (array of string, nullable): Never keywords of these groups (grp_...). Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never mentions or comments from these platforms; keyword-days, which belong to no platform, still count. Repeatable, or comma-separated.
 - `limit` (integer): Rows per page, 1 to 500 (default 100). Only by=keyword can outgrow a page; a window has at most 90 days and a dozen platforms.
 - `offset` (integer, nullable): Skip this many rows.
 
@@ -330,7 +333,7 @@ CLI: `mentio system:health`
 
 Returns: 200, an object:
 
-- `ok` (boolean, required)
+- `ok` (boolean, required): Always true when the API answers.
 
 ## Shapes
 
@@ -379,7 +382,7 @@ Returns: 200, an object:
   - `cents` (integer, required): Ledger balance: every credit minus every settled debit.
   - `pendingCents` (integer, required): Mentions and comments billed since the last daily settlement, priced but not yet debited.
   - `effectiveCents` (integer, required): cents minus pendingCents: what the stop rule and the keyword gate look at.
-  - `currency` (string, required): one of `USD`
+  - `currency` (string, required): one of `USD`. Always USD.
 - `burn` (object, required): How fast the balance goes.
   - `perDayCents` (integer, required): Average daily debit over the last 7 days (or since the workspace was created).
   - `daysLeft` (integer, required, nullable): effectiveCents divided by perDayCents; null when nothing is burning.
@@ -475,7 +478,7 @@ Returns: 200, an object:
 - `maxTopUpCents` (integer, required): Largest single top-up.
 - `defaultTopUpCents` (integer, required): Amount prefilled in the checkout.
 - `currency` (string, required): one of `USD`. Every amount on this page is in USD cents.
-- `autoRecharge` (object, required)
+- `autoRecharge` (object, required): Automatic top-up: off unless set in the dashboard.
   - `available` (boolean, required): This deployment can charge saved cards; false hides the setting.
   - `enabled` (boolean, required): Charge the saved card automatically when the balance runs low.
   - `thresholdCents` (integer, required): Charge when the effective balance drops under this.
@@ -500,8 +503,8 @@ Returns: 200, an object:
 - `email` (string, required): The invited address, lowercased.
 - `role` (string, required): one of `owner`, `admin`, `member`. The role they join with.
 - `invitedBy` (object, required, nullable): Who sent it; an API key invites on behalf of the oldest owner.
-  - `id` (string, required)
-  - `email` (string, required)
-  - `name` (string, required, nullable)
+  - `id` (string, required): User id.
+  - `email` (string, required): Their email.
+  - `name` (string, required, nullable): Their name.
 - `expiresAt` (string, required): Invitations last 48 hours; an expired one is no longer listed.
 - `createdAt` (string, required): When the invitation was sent.
