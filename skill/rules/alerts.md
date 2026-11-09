@@ -103,6 +103,8 @@ Body (JSON):
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `labels` (array of string): Only mentions carrying any of these labels. An automation labels a mention before it is delivered, so a rule can route what an automation labelled.
+  - `notLabels` (array of string): Never mentions carrying any of these labels.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `countries` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Only posts whose author is in any of these countries (ISO 3166-1 alpha-2: us, in, de). A post whose country is unknown never passes.
@@ -167,6 +169,8 @@ Body (JSON): Omitted fields are untouched.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `labels` (array of string): Only mentions carrying any of these labels. An automation labels a mention before it is delivered, so a rule can route what an automation labelled.
+  - `notLabels` (array of string): Never mentions carrying any of these labels.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `countries` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Only posts whose author is in any of these countries (ISO 3166-1 alpha-2: us, in, de). A post whose country is unknown never passes.
@@ -463,6 +467,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `organization` (boolean): true: only posts by companies, brands and organizations; false: only posts by people.
 - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
 - `notTags` (array of string): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+- `labels` (array of string): Only mentions carrying any of these labels (exact, case-sensitive).
+- `notLabels` (array of string): Never mentions carrying any of these labels.
 - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it.
 - `notLinkHosts` (array of string): Never posts linking to these hosts.
 - `subreddits` (array of string): Only Reddit posts from any of these subreddits (names without the r/, any case); every other post fails it.
@@ -515,6 +521,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
   - `tags` (array of string): Only authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `labels` (array of string): Only mentions carrying any of these labels. An automation labels a mention before it is delivered, so a rule can route what an automation labelled.
+  - `notLabels` (array of string): Never mentions carrying any of these labels.
   - `linkHosts` (array of string): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). A post with no links never passes.
   - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
   - `countries` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Only posts whose author is in any of these countries (ISO 3166-1 alpha-2: us, in, de). A post whose country is unknown never passes.

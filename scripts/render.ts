@@ -81,8 +81,8 @@ curl -sS -X PATCH "${API}/v1/filters" ${JSON_HEADERS} \\
   },
   {
     slug: 'mentions',
-    title: 'Mentions and views',
-    nouns: ['mentions', 'views'],
+    title: 'Mentions, views, labels and automations',
+    nouns: ['mentions', 'views', 'labels', 'automations'],
     intro: `A mention is one post matched to one keyword; a post that matches two keywords is two mentions with two ids. Each one nests \`post\` (platform, url, text, publishedAt), \`author\` (name, handle, url, followers, your tags; \`null\` for an anonymous post), \`classification\` (\`null\` until the classifier has run: relevance 0 to 100, sentiment, intents, a one-line note) and \`triage\` (assignee, snooze, note). \`relevant\` is true from relevance 40 up; \`priority\` is an attention score from relevance, author reach, the strongest intent and age, so \`sort=priority\` answers "what should I look at".
 
 Intent and topic tags are \`buy_intent\`, \`question\`, \`complaint\`, \`praise\`, \`comparison\`, \`churn_intent\`, \`bug_report\`, \`pricing\`, \`hiring\`, \`event\` and \`promotional\`; \`confidence\` (0 to 1, null when unmeasured) and \`uncertain\` say how sure the classifier was; \`language\` is the post's ISO 639-1 code (\`en\`, \`es\`) or null when unknown. Status is the user's triage: \`open\` (untouched), \`ignored\` (hidden from the feed and every channel), \`done\` (handled); ignored and done mentions are never delivered. Snoozed mentions leave the feed until \`snoozedUntil\`. Muted people are hidden unless \`includeMuted=true\`.
@@ -91,7 +91,9 @@ Searching: default to \`relevant=true\` unless the user asks about noise, use \`
 
 Triage is one write: \`PATCH /v1/mentions/{id}\` with only the fields to change; \`null\` clears a field. The same write takes the user's verdict on the classifier: \`relevant: false\` when they say a mention is noise (relevance becomes 0 and it leaves the relevant feed, the digests and the counts), \`relevant: true\` when the classifier missed one, \`sentiment\` to correct the label; \`null\` withdraws a verdict and restores the classifier's value. Verdicts never bill or unbill; \`classification.feedback\` shows them with the values they replaced. A mention still being classified answers \`409 classification_pending\`: wait a moment. The CSV export (and its JSON twin, \`export.json\`, the list's own objects) takes the same filters as the list and is capped at 10,000 rows, 6 exports a minute in either format.
 
-A view is a saved mention filter with a name (\`GET /v1/views\` lists the workspace's own; \`POST /v1/views\` saves one). Its \`filter\` takes the same fields as the list, as JSON, and nothing is materialized. Pass \`viewId\` to \`GET /v1/mentions\` or the export to read exactly what it selects, ANDed with anything else on the request; \`keywordKinds\` (\`brand\`, \`competitor\`, \`topic\`) says "brand mentions" without naming ids. Before creating a view, list them: the same name twice is a \`409 duplicate_view\`. Confirm before deleting one.`,
+A view is a saved mention filter with a name (\`GET /v1/views\` lists the workspace's own; \`POST /v1/views\` saves one). Its \`filter\` takes the same fields as the list, as JSON, and nothing is materialized. Pass \`viewId\` to \`GET /v1/mentions\` or the export to read exactly what it selects, ANDed with anything else on the request; \`keywordKinds\` (\`brand\`, \`competitor\`, \`topic\`) says "brand mentions" without naming ids. Before creating a view, list them: the same name twice is a \`409 duplicate_view\`. Confirm before deleting one.
+
+Labels are the workspace's own words on one mention (\`hot-lead\`, \`replied\`), unlike \`author.tags\`, which are on a person. \`PATCH /v1/mentions/{id}\` with \`labels\` replaces a mention's list; \`POST /v1/mentions/batch\` changes up to 100 mentions at once (\`status\`, \`assigneeId\`, \`addLabels\`, \`removeLabels\`, all or nothing, unknown ids in \`notFound\`); \`GET /v1/labels\` lists them with counts; \`labels\` / \`notLabels\` filter the list, views and alert rules. An automation (\`/v1/automations\`) is a filter in the list's vocabulary plus actions (labels to add, a member to assign when nobody is), run on every NEW mention it selects right after scoring and before delivery, so an alert rule on \`labels\` routes what it labelled. At most 25; they run oldest first. Existing mentions are untouched: label those with the batch call.`,
     examples: `# Relevant negative mentions from the last 7 days, most urgent first
 curl -sS "${API}/v1/mentions?relevant=true&sentiment=negative&since=$(date -u -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT00:00:00Z)&sort=priority&limit=20" ${AUTH}
 
@@ -122,7 +124,15 @@ curl -sS "${API}/v1/mentions/export.csv?relevant=true&since=2026-09-01T00:00:00Z
 # Save "Negative about us" as a view, then read it for this week
 curl -sS -X POST "${API}/v1/views" ${JSON_HEADERS} \\
   -d '{"name": "Negative about us", "filter": {"keywordKinds": ["brand"], "sentiments": ["negative"], "relevant": true}}'
-curl -sS "${API}/v1/mentions?viewId=vw_...&since=2026-09-15T00:00:00Z" ${AUTH}`,
+curl -sS "${API}/v1/mentions?viewId=vw_...&since=2026-09-15T00:00:00Z" ${AUTH}
+
+# Label every LinkedIn buying signal as a lead, from now on, and route those to sales
+curl -sS -X POST "${API}/v1/automations" ${JSON_HEADERS} \\
+  -d '{"name": "LinkedIn leads", "filter": {"platforms": ["linkedin"], "intents": ["buy_intent"]}, "actions": {"addLabels": ["hot-lead"]}}'
+
+# Close a page of mentions at once and mark them replied
+curl -sS -X POST "${API}/v1/mentions/batch" ${JSON_HEADERS} \\
+  -d '{"ids": ["mm_7f3a...", "mm_8a1b..."], "update": {"status": "done", "addLabels": ["replied"]}}'`,
   },
   {
     slug: 'people',
