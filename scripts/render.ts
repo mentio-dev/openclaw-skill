@@ -135,6 +135,25 @@ curl -sS -X POST "${API}/v1/mentions/batch" ${JSON_HEADERS} \\
   -d '{"ids": ["mm_7f3a...", "mm_8a1b..."], "update": {"status": "done", "addLabels": ["replied"]}}'`,
   },
   {
+    slug: 'searches',
+    title: 'On-demand searches',
+    nouns: ['searches'],
+    intro: `A search reads one term over the last \`24h\`, \`7d\` or \`30d\` (\`range\`, default 7d) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook; \`platforms\` narrows it; devto and news have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. \`kind\` (\`brand\`, \`competitor\`, \`topic\`, the default) and \`context\` tell the classifier what the term is, as on a keyword.
+
+Results stay APART from the mentions: no alert, digest, report or count sees them, and a search never creates a keyword. \`alreadyInWorkspace\` on a result says the post is already one of the user's mentions. When the user wants to keep listening, create a keyword (rules/keywords.md); a search is a one-off look.
+
+It costs $0.008 per scored result (a result the classifier could not score is free), and the balance must cover the most it can cost (\`maxCostCents\`: 25 results for each platform read, $2.20 for all eleven) or the answer is \`402 insufficient_balance\`; a workspace that never topped up gets \`402 funding_required\` (send the user to Billing). At most 10 searches an hour per workspace (\`429 rate_limited\`). Tell the user the maximum before searching every platform.
+
+\`POST /v1/searches\` answers at once with the search \`queued\`. Poll \`GET /v1/searches/{id}\` every 10 to 20 seconds until \`status\` is \`done\` (usually a minute or two) or \`failed\` (no platform could be read); each entry of \`platforms\` says its own \`status\` and, when skipped or failed, the \`reason\` (\`credentials\`, \`budget\`, \`rate_limited\`, \`error\`, \`timeout\`). Then \`GET /v1/searches/{id}/results\` (\`minRelevance=40\` for the relevant ones), newest first, paged with \`nextCursor\`. Summarize results like mentions: platform, author, sentiment and intents, one line, the URL. Searches are kept 30 days.`,
+    examples: `# What was said about a competitor this month, on three platforms
+curl -sS -X POST "${API}/v1/searches" ${JSON_HEADERS} \\
+  -d '{"term": "globex", "range": "30d", "kind": "competitor", "platforms": ["reddit", "hackernews", "linkedin"]}'
+
+# Wait for it, then read the relevant results
+curl -sS "${API}/v1/searches/srch_..." ${AUTH}
+curl -sS "${API}/v1/searches/srch_.../results?minRelevance=40&limit=25" ${AUTH}`,
+  },
+  {
     slug: 'people',
     title: 'People and segments',
     nouns: ['people', 'segments'],

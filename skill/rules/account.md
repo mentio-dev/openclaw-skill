@@ -418,8 +418,10 @@ Returns: 200, an object:
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
-  - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
-  - `ledgerDebitCents` (integer, required): What the ledger has debited for the window's days, by the day each debit settled, for the whole workspace whatever the filters. Lags totalCents by unsettled mentions; see [The ledger](/billing#the-ledger).
+  - `totalCents` (integer, required): keywordCents, mentionCents and commentCents, plus searchCents when the report is not filtered: then the window's whole list price. The rows carry keyword spend only.
+  - `ledgerDebitCents` (integer, required): What the ledger has debited for the window's days, by the day each debit settled, for the whole workspace whatever the filters, on-demand searches included. Lags totalCents by unsettled mentions; see [The ledger](/billing#the-ledger).
+  - `searchResults` (integer, required): On-demand search results billed in the window (scored then), for the whole workspace whatever the filters.
+  - `searchCents` (integer, required): searchResults at $0.008 each, in totals.totalCents when the report is not filtered (never in a row: rows are keyword spend).
   - `unattributedBillable` (integer, required): Billed mentions whose match row is gone (deleted keyword), so no platform or keyword row claims them; charged all the same. Comments never are (by=group puts a deleted keyword's comments on the no-group row).
 - `data` (array of object, required): by=day: chronological. by=platform and by=keyword: most expensive first, then most matched, deleted keywords included.
   - `key` (string, required): The row's key: the UTC day (YYYY-MM-DD) for by=day, the platform for by=platform, the keyword id for by=keyword, the group id for by=group.
@@ -447,7 +449,7 @@ Returns: 200, an object:
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments or adjustment.
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results) or adjustment.
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
   - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.

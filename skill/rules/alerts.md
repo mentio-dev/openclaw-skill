@@ -645,7 +645,7 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kin
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments or adjustment.
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results) or adjustment.
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
   - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.

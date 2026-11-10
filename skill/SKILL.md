@@ -93,6 +93,7 @@ Read the one for the area before the first call to it:
 - [rules/authentication.md](rules/authentication.md): key format, scopes, where keys come from, SDK and CLI use of the same key
 - [rules/keywords.md](rules/keywords.md): track, pause, widen and remove keywords; matching rules, the per-keyword context and the workspace filters; what a keyword costs
 - [rules/mentions.md](rules/mentions.md): every search filter, the mention shape, triage and the user's verdicts on the classifier, CSV export
+- [rules/searches.md](rules/searches.md): search any term over the last 24 hours, 7 or 30 days without a keyword, scored results kept apart from the mentions, what it costs
 - [rules/people.md](rules/people.md): the people behind the mentions, tags, notes, mute, merge, saved segments
 - [rules/alerts.md](rules/alerts.md): rules and channels, daily and weekly digests, webhooks and their signature, testing and the delivery log
 - [rules/analytics.md](rules/analytics.md): the four reports and the window grammar
