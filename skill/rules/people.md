@@ -455,6 +455,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `url` (string, required, nullable): Profile URL.
 - `reach` (object, required): Platform counts as of their newest post; null where the platform has no such number.
   - `followers` (integer, required, nullable): Followers when last seen; null when unknown.
+  - `influence` (integer, required, nullable): How far their voice carries, 0 to 100 from followers on a log scale: round(20 * log10(followers + 1)), capped at 100 (1,000 followers is 60). Null when followers are unknown.
   - `following` (integer, required, nullable): Accounts they follow; null when unknown.
   - `posts` (integer, required, nullable): Posts on the platform; null when unknown.
 - `profile` (object, required, nullable): Public profile facts; null until looked up.

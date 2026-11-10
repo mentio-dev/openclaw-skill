@@ -113,8 +113,8 @@ Returns: 200, `{ data: Keyword[], total }` (see Shapes below).
 **Track a keyword.** Start tracking a word or phrase; mentions arrive from the next poll.
 
 - $5 a month, charged daily; up to 500 per funded workspace.
-- `matching` filters posts before they are stored, so rejected posts never bill.
-- `cap` limits matched mentions per period.
+- `matching` filters posts before storage, rejected posts never bill; `query` writes both as one query.
+- `cap` limits mentions per period.
 
 See [Keywords](/guides/keywords).
 
@@ -122,7 +122,12 @@ CLI: `mentio keywords:create`
 
 Body (JSON):
 
-- `term` (string, required): The word or phrase to track, case-insensitive. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
+- `term` (string): The word or phrase to track, case-insensitive. Required unless `query` is sent. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
+- `query` (string): The keyword as one boolean query instead of term and matching, like "acme cloud" AND (pricing OR price*) -jobs ([Keywords](/guides/keywords#write-it-as-a-query)):
+
+- Phrases, words, AND, OR, NOT or -word, parentheses, word-end *
+- Compiled into term and the term rules; never sent with them (400).
+- Each alternative starts with the term; else 400 query_needs_one_term.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
@@ -186,7 +191,7 @@ Returns: 200, a `Keyword` (see Shapes below).
 
 ### PATCH /v1/keywords/{id}
 
-**Update a keyword.** Change a keyword's term, mute, kind, platforms, context, matching rules or mention cap.
+**Update a keyword.** Change a keyword's term, query, mute, kind, platforms, context, matching rules or mention cap.
 
 - A new `term` is tracked from now on, no look-back; old mentions stay.
 - An empty rule list clears it; `cap` null removes the cap.
@@ -200,7 +205,8 @@ Path:
 
 Body (JSON): Omitted fields are untouched.
 
-- `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it.
+- `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it. Clears query.
+- `query` (string): Rewrites the term (a rename) and the term rules from a boolean query; the other matching fields stay. Never with term or those rules (400). A later hand change of either clears it. See [Keywords](/guides/keywords#write-it-as-a-query).
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
 - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
@@ -533,6 +539,7 @@ The group the keyword belongs to.
 
 - `id` (string, required): Keyword id (kw_...).
 - `term` (string, required): The tracked text, as typed.
+- `query` (string, required, nullable): The boolean query the keyword was written as, as sent; term and matching hold what it compiled to. Null for a keyword defined by its fields, or once its term or term rules changed by hand.
 - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand (your own name), competitor, or topic.
 - `muted` (boolean, required): Not polled or matched. Paused by you, by the wallet (see pausedForBalance) or by the noise brake (see pausedForNoise). A keyword at its mention cap is not muted (see pausedForCap).
 - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
@@ -686,7 +693,8 @@ The group the keyword belongs to.
 - `values` (array of string, required): What it adds (terms, authors), drops (platforms) or writes (the context).
 - `why` (string, required): The reason and the measured effect, in plain words.
 - `patch` (object, required): The body to send to PATCH /v1/keywords/{id} as is to apply it. A list holds the whole new list, current entries kept.
-  - `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it.
+  - `term` (string): Renames the keyword: the new term is tracked from now on, with no look-back, keeping its id, settings and old mentions. Double quotes mean the exact phrase only. 409 when its group already tracks it. Clears query.
+  - `query` (string): Rewrites the term (a rename) and the term rules from a boolean query; the other matching fields stay. Never with term or those rules (400). A later hand change of either clears it. See [Keywords](/guides/keywords#write-it-as-a-query).
   - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
   - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
   - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).

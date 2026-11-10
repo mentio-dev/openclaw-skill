@@ -99,6 +99,8 @@ Body (JSON):
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions: ["anger"]. A mention whose emotion was not judged still passes.
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
@@ -165,6 +167,8 @@ Body (JSON): Omitted fields are untouched.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions: ["anger"]. A mention whose emotion was not judged still passes.
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.
@@ -457,6 +461,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+- `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+- `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
 - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
 - `notIntents` (array of string): Never mentions carrying these tags.
 - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -517,6 +523,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions: ["anger"]. A mention whose emotion was not judged still passes.
   - `intents` (array of string): At least one of these intent or topic tags.
   - `excludeAuthors` (array of string): Never these authors: display names, handles or profile URLs.
   - `minFollowers` (integer): Only authors with at least this many followers. Unknown reach never passes.

@@ -55,10 +55,11 @@ Query:
 - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension to group by:
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `emotion`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`, `domain`, `link`, `hashtag`. The dimension to group by:
 
 - platform or keyword.
 - sentiment: unclassified included.
+- emotion: the emotion toward the keyword; "unclassified" if not judged.
 - intent: a mention can carry several.
 - status: open, ignored, done.
 - hour: weekday and hour of day in `timezone`.
@@ -66,6 +67,9 @@ Query:
 - language: ISO 639-1; "unknown" if none, "other" if unnamed.
 - country: the author's, ISO 3166-1 alpha-2; "unknown", "other" likewise.
 - subreddit: Reddit posts only; `share` stays of the whole window.
+- domain: hosts posts link to; a post can carry several.
+- link: URLs posts link to; a post can carry several.
+- hashtag: lowercase, no #; a post can carry several.
 
 Returns: 200, a `AnalyticsBreakdown` (see Shapes below).
 
@@ -173,9 +177,9 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `to` (string, required): Last day, inclusive.
   - `days` (integer, required): Length of the window in days.
   - `timezone` (string, required): IANA zone the days were cut in.
-- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`. The dimension the rows are grouped by.
+- `by` (string, required): one of `platform`, `keyword`, `sentiment`, `emotion`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`, `domain`, `link`, `hashtag`. The dimension the rows are grouped by.
 - `data` (array of object, required): Most matched first, at most 50 groups. by=hour is chronological and unlimited (168 cells at most).
-  - `key` (string, required): The group: platform name, keyword id, sentiment, intent, status, "weekday-hour" for by=hour, an opaque person key, or the subreddit in lowercase.
+  - `key` (string, required): The group: platform name, keyword id, sentiment, emotion, intent, status, "weekday-hour" for by=hour, an opaque person key, the subreddit in lowercase, the host (by=domain), the URL (by=link) or the hashtag without its #.
   - `label` (string, required): Readable name: the keyword term, the person name, the subreddit as Reddit spells it, otherwise the key.
   - `keyword` (object, required, nullable): by=keyword only; null otherwise.
     - `id` (string, required): Keyword id (kw_...).
@@ -194,7 +198,7 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
     - `hour` (integer, required): Hour of day, 0 to 23.
   - `matched` (integer, required): Matches in the group.
   - `relevant` (integer, required): Of those, scored at or above the relevance threshold.
-  - `share` (number, required): Percent of the window's matched mentions in this group, one decimal. Intents overlap, so their shares can add up past 100.
+  - `share` (number, required): Percent of the window's matched mentions in this group, one decimal. Intents, domains, links and hashtags overlap, so their shares can add up past 100.
   - `sentiment` (object, required): Matched mentions by classifier sentiment.
     - `positive` (integer, required): Classified positive.
     - `neutral` (integer, required): Classified neutral.

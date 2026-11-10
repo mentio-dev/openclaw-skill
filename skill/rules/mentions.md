@@ -131,6 +131,8 @@ Query:
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword (joy, trust, anticipation, surprise, confusion, frustration, anger, fear, sadness, neutral). A mention whose emotion was not judged never passes.
+- `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions. A mention whose emotion was not judged still passes.
 - `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
 - `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
@@ -159,7 +161,13 @@ Query:
 - `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
 - `since` (string): Deprecated: use from. Only posts published at or after this instant (ISO 8601, or epoch ms).
 - `until` (string): Deprecated: use to. Only posts published at or before this instant (ISO 8601, or epoch ms).
-- `sort` (string): one of `newest`, `priority`. newest: by match time, newest first. priority: by attention score, highest first; priority ranks the last 30 days of matches only, older ones stay reachable under newest. Cursors are specific to a sort.
+- `sort` (string): one of `newest`, `priority`, `reach`, `engagement`. How to order the list:
+
+- newest: by match time.
+- priority: attention score, last 30 days of matches.
+- reach: author followers, unknown last; counts update, so pages can shift.
+- engagement: likes, reposts, replies and quotes; none last.
+- reach and engagement: the last 30 days unless a window is set.
 - `cursor` (string): nextCursor from the previous page; pass the same filters and sort.
 - `limit` (integer): Page size, 1 to 100 (default 50).
 
@@ -294,6 +302,8 @@ Query:
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword (joy, trust, anticipation, surprise, confusion, frustration, anger, fear, sadness, neutral). A mention whose emotion was not judged never passes.
+- `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions. A mention whose emotion was not judged still passes.
 - `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
 - `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
@@ -374,6 +384,8 @@ Query:
 - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+- `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword (joy, trust, anticipation, surprise, confusion, frustration, anger, fear, sadness, neutral). A mention whose emotion was not judged never passes.
+- `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions. A mention whose emotion was not judged still passes.
 - `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
 - `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
 - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
@@ -443,6 +455,8 @@ Body (JSON):
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -519,6 +533,8 @@ Body (JSON):
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -622,6 +638,8 @@ Body (JSON):
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -701,6 +719,8 @@ Body (JSON):
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -806,6 +826,7 @@ Returns: 204, no body.
   - `url` (string, required, nullable): Profile URL.
   - `avatarUrl` (string, required, nullable): Profile picture; null where the platform has none.
   - `followers` (integer, required, nullable): Follower count as of their newest post; null where the platform has none.
+  - `influence` (integer, required, nullable): How far their voice carries, 0 to 100 from followers on a log scale: round(20 * log10(followers + 1)), capped at 100 (1,000 followers is 60). Null when followers are unknown.
   - `tags` (array of string, required): Your tags on this person: the workspace's, then those the mention's own keyword group gave them (set with groupId on /v1/people), each once.
 - `review` (object, required, nullable): An app store review's facts; null for every other post. Its sentiment comes from the stars (4 and 5 positive, 3 neutral, 1 and 2 negative) and it always counts as relevant, since you chose the app.
   - `rating` (integer, required): Stars the reviewer gave.
@@ -823,6 +844,18 @@ Returns: 204, no body.
 - `classification` (object, required, nullable): The classifier verdict, as corrected by your feedback; null while the post is still queued for classification.
   - `relevance` (integer, required, nullable): 0 to 100; null only when classification failed.
   - `sentiment` (string, required, nullable): one of `positive`, `neutral`, `negative`. positive, neutral or negative; null until classified.
+  - `emotion` (string, required, nullable): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. The author's dominant emotion toward the keyword, apart from sentiment; null when not judged.
+
+- joy: delight or excitement about it.
+- trust: relies on it, vouches for it.
+- anticipation: looks forward to a launch or update.
+- surprise: caught off guard by it.
+- confusion: unsure how it works, stuck.
+- frustration: annoyed it fails or gets in the way.
+- anger: outraged, feels wronged by it.
+- fear: worried: risk, security, lock-in, cost.
+- sadness: disappointed, regrets a loss or shutdown.
+- neutral: no emotion shown, or only named.
   - `intents` (array of string, required): Intent and topic tags:
 
 - buy_intent, question, complaint, praise, comparison, bug_report, pricing, hiring, event, promotional.
@@ -934,6 +967,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
 - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
 - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+- `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+- `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
 - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
 - `notIntents` (array of string): Never mentions carrying these tags.
 - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -997,6 +1032,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
@@ -1052,6 +1089,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
   - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments; an unscored mention still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword. A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions; a mention whose emotion was not judged still passes.
   - `intents` (array of string): Only mentions carrying any of these intent or topic tags.
   - `notIntents` (array of string): Never mentions carrying these tags.
   - `automated` (boolean): true: only posts that read as machine-made; false: only the rest.
