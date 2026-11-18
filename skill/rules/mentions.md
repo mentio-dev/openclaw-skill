@@ -234,17 +234,85 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### POST /v1/mentions/batch
 
-**Update many mentions.** Change up to 100 mentions at once: status, assignee, labels to add or remove.
+**Update many mentions.** Change many mentions at once: status, assignee, labels to add or remove. Name them by `ids` (up to 100), or by `filter` to act on everything the mentions list would show (Mark all as done).
 
-- All of it lands, or none of it.
-- Unknown ids come back in `notFound`.
+- By ids, all of it lands or none of it; unknown ids come back in `notFound`.
+- By filter, up to 1,000 a call, newest first: while `nextCursor` comes back, call again with the same filter and that cursor. Mentions matched after the first call are left alone.
 - Removals run before additions. See [Labels and automations](/guides/labels).
 
 CLI: `mentio mentions:update-many`
 
 Body (JSON):
 
-- `ids` (array of string, required): Mention ids (mm_...), 1 to 100: a page of GET /v1/mentions.
+- `ids` (array of string): Mention ids (mm_...), 1 to 100: a page of GET /v1/mentions. Send ids or filter, never both.
+- `filter` (object): Instead of ids: act on every mention these filters select, up to 1000 a call, newest first. While nextCursor comes back, call again with the same filter and that cursor; the set is fixed when the first call runs, so mentions arriving meanwhile are left alone.
+  - `keywordId` (string): Deprecated: use keywordIds. Only matches of this keyword; combines with keywordIds as either.
+  - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. Only posts from this platform; combines with platforms as either.
+  - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
+  - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest (unclassified included).
+  - `sentiment` (string): one of `positive`, `neutral`, `negative`. Deprecated: use sentiments. Only this sentiment; combines with sentiments as either.
+  - `intent` (string): Deprecated: use intents. Only mentions carrying this intent or topic tag, combined with intents as either (buy_intent, question, complaint, praise, comparison, churn_intent, bug_report, pricing, hiring, event, promotional, testimonial, industry_insight, launch, feedback).
+  - `automated` (boolean): true: only mentions that read as machine-made (a bot account, a scheduled or templated post, AI-written text); false: only the rest, mentions judged before this existed included. Omitted: everything.
+  - `organization` (boolean): true: only posts by companies, brands and organizations (a LinkedIn company page, a GitHub organization, a business account); false: only posts by people, mentions judged before this existed included. Omitted: everything.
+  - `personId` (string): Only this person (an id from /v1/people), merged accounts included. Implies includeMuted.
+  - `includeMuted` (boolean): true: include mentions by people you muted, hidden by default: muted for the workspace, or for the mention's own keyword group.
+  - `includeHidden` (boolean): true: include mentions their keyword's display lists hide (a language or country it does not show), hidden by default.
+  - `includeDuplicates` (boolean): true: list cross-posts (a mention whose duplicateOf is set) as mentions of their own. By default each is listed only in its original's duplicates.
+  - `assigneeId` (string): Only mentions assigned to this workspace member (user id).
+  - `snoozed` (boolean): true: only mentions currently snoozed. Otherwise snoozed mentions stay out until they wake.
+  - `notAuthors` (array of string, nullable): Hide these authors: display names, handles or profile URLs. Repeatable, or one comma-separated value.
+  - `excludeAuthors` (array of string, nullable): Deprecated: use notAuthors, the same filter. Both may be sent; every author named in either is hidden.
+  - `minRelevance` (integer, nullable): Only mentions scored at least this; unclassified ones are excluded.
+  - `minConfidence` (number, nullable): Only mentions whose classifier confidence is at least this, 0 to 1. Mentions without a confidence are excluded.
+  - `minFollowers` (integer, nullable): Only authors with at least this many followers. Unknown reach never passes.
+  - `maxFollowers` (integer, nullable): Only authors with at most this many followers. Unknown reach never passes.
+  - `kind` (string): one of `post`, `comment`, `repository`. Only posts (post), only comments (comment) or only GitHub repository events (repository). Omitted: all.
+  - `isReply` (boolean): true: only replies and comments (posts answering another post); false: only top-level posts. Omitted: both.
+  - `alertId` (string): Apply an alert rule's filter (an id from GET /v1/alerts) on top of the other filters: the same mentions the rule would send, for a feed-shaped export or a preview. Unknown ids are a 404.
+  - `viewId` (string): Apply a saved view's filter (an id from GET /v1/views) on top of the other filters, every condition ANDed: exactly what the view selects. Unknown ids are a 404.
+  - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Only matches of keywords of any of these kinds: brand, competitor, topic. Repeatable, or comma-separated.
+  - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds. Repeatable, or comma-separated.
+  - `tags` (array of string, nullable): Only authors tagged with any of these (exact, case-sensitive), in the workspace's tags or those of the mention's own keyword group. Repeatable, or comma-separated.
+  - `linkHosts` (array of string, nullable): Only posts linking to any of these hosts, the host itself or a subdomain of it (octolens.com also matches blog.octolens.com). Repeatable, or comma-separated.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
+  - `keywordIds` (array of string, nullable): Only matches of any of these keywords.
+  - `groupIds` (array of string, nullable): Only matches of keywords in any of these groups (grp_...). Repeatable, or comma-separated.
+  - `notGroupIds` (array of string, nullable): Never matches of keywords in these groups.
+  - `notKeywordIds` (array of string, nullable): Never matches of these keywords.
+  - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
+  - `notSentiments` (array of string): one of `positive`, `neutral`, `negative`. Never these sentiments. A mention the classifier has not scored yet still passes.
+  - `emotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Only mentions showing any of these emotions toward the keyword (joy, trust, anticipation, surprise, confusion, frustration, anger, fear, sadness, neutral). A mention whose emotion was not judged never passes.
+  - `notEmotions` (array of string): one of `joy`, `trust`, `anticipation`, `surprise`, `confusion`, `frustration`, `anger`, `fear`, `sadness`, `neutral`. Never these emotions. A mention whose emotion was not judged still passes.
+  - `intents` (array of string, nullable): Only mentions carrying any of these intent or topic tags.
+  - `notIntents` (array of string, nullable): Never mentions carrying these intent or topic tags.
+  - `notLinkHosts` (array of string, nullable): Never posts linking to these hosts, the host itself or a subdomain of it.
+  - `subreddits` (array of string, nullable): Only Reddit posts from any of these subreddits: subreddits=SaaS,startups (names without the r/, any case). Every other post fails it. Repeatable, or comma-separated.
+  - `notSubreddits` (array of string, nullable): Never Reddit posts from these subreddits; posts from other platforms still pass.
+  - `notTags` (array of string, nullable): Never authors tagged with any of these, in the workspace's tags or those of the mention's own keyword group.
+  - `labels` (array of string, nullable): Only mentions carrying any of these labels (exact, case-sensitive). Repeatable, or comma-separated.
+  - `notLabels` (array of string, nullable): Never mentions carrying any of these labels. Repeatable, or comma-separated.
+  - `languages` (array of string): Only posts in any of these languages (ISO 639-1: en, es, de). A post whose language is unknown never passes.
+  - `notLanguages` (array of string): Never posts in these languages. A post whose language is unknown still passes.
+  - `countries` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Only posts whose author is in any of these countries (ISO 3166-1 alpha-2: us, in, de), as the classifier read the author's profile and the post. A post whose country is unknown never passes.
+  - `notCountries` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Never posts whose author is in these countries: notCountries=in. A post whose country is unknown still passes.
+  - `ratings` (array of integer): Only app store reviews with any of these star ratings (1 to 5): ratings=1,2 is the unhappy ones. Every other post fails it.
+  - `notRatings` (array of integer): Never reviews with these star ratings (1 to 5): notRatings=5 hides the five star reviews. Posts that are not reviews still pass.
+  - `minLikes` (integer, nullable): Only posts with at least this many likes (upvotes, reactions), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReposts` (integer, nullable): Only posts with at least this many reposts (shares, retweets), as the platform reported them when the post was found. A post without that count never passes.
+  - `minReplies` (integer, nullable): Only posts with at least this many replies (comments), as the platform reported them when the post was found. A post without that count never passes.
+  - `minQuotes` (integer, nullable): Only posts with at least this many quotes, as the platform reported them when the post was found. A post without that count never passes.
+  - `minViews` (integer, nullable): Only posts with at least this many views (plays), as the platform reported them when the post was found. A post without that count never passes.
+  - `minBookmarks` (integer, nullable): Only posts with at least this many bookmarks (saves), as the platform reported them when the post was found. A post without that count never passes.
+  - `anyOf` (string): OR across groups of conditions, as URL-encoded JSON: a mention passes when one group holds, on top of every other filter. Each group holds view-filter conditions, no nesting. See [anyOf](/conventions#or-across-groups-anyof).
+  - `q` (string): Substring search in the post text or the author's name.
+  - `range` (string): one of `7d`, `30d`, `90d`, `365d`. A preset window ending now: 7d is today and the six days before, in `timezone`, as in the analytics reports. Ignored when from or to is given. Omit range, from and to for no window.
+  - `from` (string): Start, inclusive: a day (YYYY-MM-DD, from its first moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+  - `to` (string): End, inclusive: a day (YYYY-MM-DD, to its last moment in `timezone`) or an instant (ISO 8601 with its offset, or epoch ms).
+  - `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
+  - `since` (string): Deprecated: use from. Only posts published at or after this instant (ISO 8601, or epoch ms).
+  - `until` (string): Deprecated: use to. Only posts published at or before this instant (ISO 8601, or epoch ms).
+- `cursor` (string): With filter only: nextCursor from the previous call, to carry on where it stopped.
 - `update` (object, required): Every field is optional, at least one is required; omitted fields are untouched.
   - `status` (string): one of `open`, `ignored`, `done`. ignored or done to handle them; open to put them back.
   - `assigneeId` (string, nullable): A workspace member (user id), or null to unassign.
@@ -944,9 +1012,10 @@ The group the keyword belongs to.
 
 ### MentionBatchResult
 
-- `updated` (array of string, required): The ids changed, in the order sent. A pending mention given only a status is not changed: it is in pending alone.
-- `notFound` (array of string, required): The ids this workspace has no mention by, in the order sent; nothing was done to them.
+- `updated` (array of string, required): The ids changed, in the order sent (with filter: newest first). A pending mention given only a status is not changed: it is in pending alone.
+- `notFound` (array of string, required): The ids this workspace has no mention by, in the order sent; nothing was done to them. Always empty with filter.
 - `pending` (array of string, required): Of the updated ids, those still waiting for the classifier: they took the labels and the assignee, but their status stays until they are scored. Empty unless the update set a status.
+- `nextCursor` (string, required, nullable): With filter: more mentions match, so call again with the same filter and this cursor. null when every one has been covered, and always null with ids.
 
 ### FilterGroup
 
