@@ -234,18 +234,19 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 ### POST /v1/mentions/batch
 
-**Update many mentions.** Change many mentions at once: status, assignee, labels to add or remove. Name them by `ids` (up to 100), or by `filter` to act on everything the mentions list would show (Mark all as done).
+**Update many mentions.** Change many mentions at once: status, assignee, labels to add or remove.
 
-- By ids, all of it lands or none of it; unknown ids come back in `notFound`.
-- By filter, up to 1,000 a call, newest first: while `nextCursor` comes back, call again with the same filter and that cursor. Mentions matched after the first call are left alone.
-- Removals run before additions. See [Labels and automations](/guides/labels).
+- By `ids`: up to 100, all or nothing; unknown ids come back in `notFound`.
+- By `filter`: every mention the list shows, 1,000 a call; repeat with `nextCursor` until null.
+
+See [Labels and automations](/guides/labels).
 
 CLI: `mentio mentions:update-many`
 
 Body (JSON):
 
 - `ids` (array of string): Mention ids (mm_...), 1 to 100: a page of GET /v1/mentions. Send ids or filter, never both.
-- `filter` (object): Instead of ids: act on every mention these filters select, up to 1000 a call, newest first. While nextCursor comes back, call again with the same filter and that cursor; the set is fixed when the first call runs, so mentions arriving meanwhile are left alone.
+- `filter` (object): Instead of ids: every mention GET /v1/mentions would list with these filters, up to 1000 a call, newest first. Repeat with the same filter and nextCursor until it is null.
   - `keywordId` (string): Deprecated: use keywordIds. Only matches of this keyword; combines with keywordIds as either.
   - `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. Only posts from this platform; combines with platforms as either.
   - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status. Omit for every status.
