@@ -138,7 +138,7 @@ curl -sS -X POST "${API}/v1/mentions/batch" ${JSON_HEADERS} \\
     slug: 'searches',
     title: 'On-demand searches',
     nouns: ['searches'],
-    intro: `A search reads one term over the last \`24h\`, \`7d\` or \`30d\` (\`range\`, default 7d) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack, threads, mastodon; \`platforms\` narrows it; devto, news and producthunt have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. \`kind\` (\`brand\`, \`competitor\`, \`topic\`, the default) and \`context\` tell the classifier what the term is, as on a keyword.
+    intro: `A search reads one term over the last \`24h\`, \`7d\`, \`30d\`, \`90d\` or \`365d\` (\`range\`, default 7d; past 30 days linkedin, tiktok, facebook, instagram, threads, web and substack cannot reach and come back skipped with reason \`window\`) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack, threads, mastodon; \`platforms\` narrows it; devto, news and producthunt have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. \`kind\` (\`brand\`, \`competitor\`, \`topic\`, the default) and \`context\` tell the classifier what the term is, as on a keyword.
 
 Results stay APART from the mentions: no alert, digest, report or count sees them, and a search never creates a keyword. \`alreadyInWorkspace\` on a result says the post is already one of the user's mentions. When the user wants to keep listening, create a keyword (rules/keywords.md); a search is a one-off look.
 
@@ -169,6 +169,22 @@ curl -sS -X POST "${API}/v1/exports" ${JSON_HEADERS} \\
 # Wait for it, then download
 curl -sS "${API}/v1/exports/exp_..." ${AUTH}
 curl -sS "${API}/v1/exports/exp_.../file" ${AUTH} -o mentions.csv`,
+  },
+  {
+    slug: 'keyword-estimates',
+    title: 'Keyword estimates',
+    nouns: ['keyword-estimates'],
+    intro: `Before creating keywords, an estimate says how many matched mentions up to 10 candidate terms would bring a month on each platform, and what tracking each would cost (\`cost\`: the $5 keyword fee plus $0.008 a match, as \`totalLowCents\` to \`totalHighCents\`). Use it when the user asks "how noisy is this term", "what would this cost", or hesitates between candidate keywords. \`platforms\` narrows it (default every platform) and \`matching\` takes the rules the keyword would carry (\`requiredTerms\`, \`excludedTerms\`, \`exactPhrase\`).
+
+Each platform's number has a \`method\`: \`index\` (counted from the posts Mentio already reads for that term: exact and free) or \`sample\` (one page of the platform's own search, extrapolated: a range). By default the estimate is FREE (\`includePaid\` false): paid platforms Mentio does not read yet for the term come back skipped with reason \`paid\`, youtube with \`quota\` (bluesky, hackernews, github, stackoverflow, podcasts, substack and mastodon are sampled free). With \`includePaid: true\` they are sampled too, charged per term and platform read (web 2 cents, threads 3, reddit 5, x 5, linkedin 7, tiktok 7, facebook 10, instagram 20; \`maxCostCents\` is the most), only for a funded workspace (\`402 funding_required\` / \`insufficient_balance\`). Ask the user before sending it. At most 30 estimates and 60 platform samples an hour.
+
+\`POST /v1/keyword-estimates\` answers at once; when \`status\` is not \`done\`, poll \`GET /v1/keyword-estimates/{id}\` every 5 to 10 seconds (usually under a minute). Report per term the monthly range and cost, and say which platforms have no number (\`complete: false\`). Estimates are kept 30 days.`,
+    examples: `# Two candidate keywords on four platforms, free
+curl -sS -X POST "${API}/v1/keyword-estimates" ${JSON_HEADERS} \\
+  -d '{"terms": ["acme", "acme api"], "platforms": ["reddit", "hackernews", "github", "x"]}'
+
+# Then read it until status is done
+curl -sS "${API}/v1/keyword-estimates/est_..." ${AUTH}`,
   },
   {
     slug: 'people',
@@ -208,7 +224,7 @@ Channels by kind: \`slack\` and \`telegram\` are connected in the dashboard (Sla
 
 Webhook payloads are \`{ id, event, createdAt, alert: {id, name}, data }\`; \`event\` is the rule's own name (\`mention.negative\`, \`mention.buy_intent\`, anything lowercase and dotted) so one endpoint can serve many rules, defaulting to \`mention.matched\` for instant rules and \`digest\` for daily ones. \`data\` is the mention or the digest exactly as the API shapes it. A 2xx within 10 seconds is success; timeouts, 408, 429 and 5xx are retried up to 5 times about 30 seconds apart with the same \`id\`, so consumers deduplicate on it.
 
-Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (\`mention.spike\`), whose negative share of the last 24 hours jumped (\`sentiment.negative_spike\`), that turned noisy (\`keyword.noisy\`), or a channel whose last 5 sends failed (\`channel.failing\`). \`GET /v1/attention\` lists the open ones (\`status=all\` for the history, \`kind\` to narrow), each with a one-line \`title\` and its facts in \`data\` (\`data.url\` is the dashboard page to look at); an item resolves on its own when the condition is gone, and \`POST /v1/attention/{id}/dismiss\` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with \`events\` like the keyword and wallet events, and Slack, email, Telegram, Discord and Teams channels can subscribe to these four only (\`PATCH /v1/channels/{id}\` with \`events\`). When the user asks what needs a look, start with the open attention items.
+Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (\`mention.spike\`), whose negative share of the last 24 hours jumped (\`sentiment.negative_spike\`), that turned noisy (\`keyword.noisy\`), a channel whose last 5 sends failed (\`channel.failing\`), a person with 100,000+ followers whose relevant mention nobody answered for 3 hours (\`mention.unanswered_influencer\`, one item per person about their newest such post), or many relevant posts on one keyword sharing an intent tag or a hashtag in 24 hours (\`mention.topic_cluster\`). \`GET /v1/attention\` lists the open ones (\`status=all\` for the history, \`kind\` to narrow), each with a one-line \`title\` and its facts in \`data\` (\`data.url\` is the dashboard page to look at); an item resolves on its own when the condition is gone, and \`POST /v1/attention/{id}/dismiss\` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with \`events\` like the keyword and wallet events, and Slack, email, Telegram, Discord and Teams channels can subscribe to the attention events only (\`PATCH /v1/channels/{id}\` with \`events\`). When the user asks what needs a look, start with the open attention items.
 
 Testing: \`POST /v1/channels/{id}/test\` sends \`event: "test"\` to one channel, \`POST /v1/alerts/{id}/test\` through every channel of a rule, \`POST /v1/alerts/{id}/run\` sends a daily rule's last 24 hours now without moving its schedule, and \`GET /v1/channels/{id}/deliveries\` shows what went out and how it went. Confirm before deleting a rule or a channel and before rotating a secret (the old one stops verifying at once).`,
     examples: `# What channels exist, then a rule for negative mentions to the Slack one

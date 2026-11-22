@@ -93,7 +93,8 @@ Read the one for the area before the first call to it:
 - [rules/authentication.md](rules/authentication.md): key format, scopes, where keys come from, SDK and CLI use of the same key
 - [rules/keywords.md](rules/keywords.md): track, pause, widen and remove keywords; matching rules, the per-keyword context and the workspace filters; what a keyword costs
 - [rules/mentions.md](rules/mentions.md): every search filter, the mention shape, triage and the user's verdicts on the classifier, CSV export
-- [rules/searches.md](rules/searches.md): search any term over the last 24 hours, 7 or 30 days without a keyword, scored results kept apart from the mentions, what it costs
+- [rules/searches.md](rules/searches.md): search any term over the last 24 hours, 7, 30, 90 or 365 days without a keyword, scored results kept apart from the mentions, what it costs
+- [rules/keyword-estimates.md](rules/keyword-estimates.md): before adding keywords, how many mentions a month up to 10 candidate terms would bring per platform and what each would cost; free unless paid platforms are sampled
 - [rules/exports.md](rules/exports.md): mentions as a CSV or JSON Lines file in the background (up to 1,000,000 rows), a signed download link, recurring exports to a webhook or a bucket
 - [rules/people.md](rules/people.md): the people behind the mentions, tags, notes, mute, merge, saved segments
 - [rules/alerts.md](rules/alerts.md): rules and channels, daily and weekly digests, webhooks and their signature, testing and the delivery log

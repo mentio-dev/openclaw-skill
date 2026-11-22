@@ -63,8 +63,10 @@ curl -sS -X PATCH "https://api.mentio.dev/v1/filters" -H "Authorization: Bearer 
 | `GET` | `/v1/keywords/{id}` | `mentio keywords:get` | Get a keyword |
 | `PATCH` | `/v1/keywords/{id}` | `mentio keywords:update` | Update a keyword |
 | `DELETE` | `/v1/keywords/{id}` | `mentio keywords:delete` | Delete a keyword |
+| `GET` | `/v1/keywords/{id}/deletion-preview` | `mentio keywords:deletion-preview` | Preview a keyword deletion |
 | `POST` | `/v1/keywords/{id}/duplicate` | `mentio keywords:duplicate` | Duplicate a keyword |
 | `GET` | `/v1/keywords/{id}/health` | `mentio keywords:health` | Get a keyword's health |
+| `POST` | `/v1/keywords/batch` | `mentio keywords:create-many` | Track many keywords |
 | `GET` | `/v1/groups` | `mentio groups:list` | List groups |
 | `POST` | `/v1/groups` | `mentio groups:create` | Create a group |
 | `GET` | `/v1/groups/{id}` | `mentio groups:get` | Get a group |
@@ -269,6 +271,21 @@ Path:
 
 Returns: 204, no body.
 
+### GET /v1/keywords/{id}/deletion-preview
+
+**Preview a keyword deletion.** What DELETE /v1/keywords/{id} would remove or change, without changing anything.
+
+- Its mentions and what it cost this month (charges already made stay).
+- Alert rules, automations and views naming it, and the effect on each: disabled, narrowed or empty.
+
+CLI: `mentio keywords:deletion-preview`
+
+Path:
+
+- `id` (string, required): Keyword id (kw_...).
+
+Returns: 200, a `KeywordDeletionPreview` (see Shapes below).
+
 ### POST /v1/keywords/{id}/duplicate
 
 **Duplicate a keyword.** Create a keyword with this one's settings under a new term or group.
@@ -310,6 +327,67 @@ Query:
 - `ai` (boolean): true: also ask a language model for a rewritten context (cached a day per keyword and window, at most 20 model calls an hour per workspace). Default false: every suggestion comes from the rules alone.
 
 Returns: 200, a `KeywordHealth` (see Shapes below).
+
+### POST /v1/keywords/batch
+
+**Track many keywords.** Create up to 100 keywords in one call, as POST /v1/keywords would, without reviewSources and feeds.
+
+- Each is created or refused on its own; `data` answers in order.
+- The wallet is checked keyword by keyword; none created for it is a 402.
+
+See [Keywords](/guides/keywords#add-many-at-once).
+
+CLI: `mentio keywords:create-many`
+
+Body (JSON):
+
+- `keywords` (array of object, required): The keywords to create, 1 to 100 (10 before the first top-up), in order. Each is created or refused on its own.
+  - `term` (string): The word or phrase to track, case-insensitive. Required unless `query` is sent. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
+  - `query` (string): The keyword as one boolean query instead of term and matching, like "acme cloud" AND (pricing OR price*) -jobs ([Keywords](/guides/keywords#write-it-as-a-query)):
+
+- Phrases, words, AND, OR, NOT or -word, parentheses, word-end *
+- Compiled into term and the term rules; never sent with them (400).
+- Each alternative starts with the term; else 400 query_needs_one_term.
+  - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
+  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
+  - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+  - `matching` (object): Omitted fields are untouched; an empty list clears one.
+    - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
+    - `requiredMode` (string): one of `any`, `all`. any: at least one required term must appear. all: every one must.
+    - `requiredGroups` (array of array of string): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
+    - `excludedTerms` (array of string): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
+    - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
+    - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+    - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+    - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
+      - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
+
+- traction: under 30 days old, it reached 10 stars.
+- stars: it passed a milestone (100, 250, 500, 1,000 ...).
+- growth: it gained stars fast in a week.
+- new: every repository created; opt in, mostly noise.
+      - `minStars` (integer, nullable): Only repositories with at least this many stars; null for no minimum.
+      - `minWeeklyStars` (integer, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
+    - `subreddits` (object): Reddit only, for this keyword alone: each list is replaced when sent, kept when omitted.
+      - `only` (array of string): Replaces the keyword's allowlist; [] clears it.
+      - `excluded` (array of string): Replaces the keyword's deny list; [] clears it.
+  - `cap` (object, nullable): A mention cap per day, week or month (per, default month); omit or null for none.
+    - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+    - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
+  - `comments` (object): Comments under this keyword's mentions; omitted fields are untouched (on create: off, 20 per post).
+    - `enabled` (boolean): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+    - `maxPerPost` (integer): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
+  - `display` (object): Which of this keyword's mentions you see, by language and country; each list is replaced when sent, kept when omitted. Hidden mentions are still billed.
+    - `languages` (object): By the language of the post (ISO 639-1); omitted: untouched.
+      - `only` (array of string): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. Replaces the list; [] clears it.
+      - `excluded` (array of string): one of `en`, `es`, `de`, `fr`, `pt`, `it`, `nl`, `ca`, `pl`, `tr`, `sv`, `da`, `ru`, `uk`, `ar`, `hi`, `id`, `ja`, `zh`, `ko`. Replaces the list; [] clears it.
+    - `countries` (object): By where the author is (ISO 3166-1 alpha-2); omitted: untouched.
+      - `only` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Replaces the list; [] clears it.
+      - `excluded` (array of string): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. Replaces the list; [] clears it.
+  - `groupId` (string): The group to track it in (grp_...); omit for the workspace's default group. A term may be tracked once per group.
+  - `readsWorkspaceFeeds` (boolean): Whether the keyword also reads the workspace's feeds (GET /v1/feeds); default true. A new keyword reading them gets the look-back of the 8 most recently connected.
+
+Returns: 200, a `KeywordBatchResult` (see Shapes below).
 
 ### GET /v1/groups
 
@@ -629,6 +707,37 @@ The group the keyword belongs to.
   - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
 - `createdAt` (string, required): ISO 8601 timestamp, UTC.
 
+### KeywordDeletionPreview
+
+- `keyword` (object, required): The keyword.
+  - `id` (string, required): Keyword id (kw_...).
+  - `term` (string, required): The tracked term.
+  - `name` (string, required): The keyword as Mentio names it: the term, or "term (Group)" outside the default group.
+- `matches` (integer, required): Its mentions, every match ever: deleted with it (a post another keyword also matched stays there).
+- `thisMonth` (integer, required): Of those, recorded this calendar month (UTC), plus the thread comments delivered under it.
+- `cost` (object, required): What it has cost this month so far. Deleting refunds nothing: charges already made stay on the ledger, and from the next daily charge it costs nothing.
+  - `keywordDays` (integer, required): Days this month the keyword was charged for: unmuted at the daily tick. A keyword created today reads 0 until tomorrow's tick.
+  - `keywordCents` (integer, required): Those days at the keyword rate ($5 a month, 500/30 cents a day), rounded once on the total.
+  - `billableMentions` (integer, required): Matches billed this month, counted when they were scored (the clock the ledger settles by), so it can trail thisMonth by the matches still being scored and never counts one that failed to score.
+  - `mentionCents` (integer, required): Those matches at $0.008 each, rounded once on the total.
+  - `billableComments` (integer, required): Comments billed this month under this keyword: comments delivered in its threads and comments it matched, each once per workspace.
+  - `commentCents` (integer, required): Those comments at $0.008 each, rounded once on the total.
+  - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents: what this keyword has cost this month, in USD cents.
+- `alerts` (array of object, required): Alert rules whose filter names the keyword.
+  - `id` (string, required): Alert rule id (feed_...).
+  - `name` (string, required): Its name.
+  - `enabled` (boolean, required): Whether it is on now.
+  - `effect` (string, required): one of `disabled`, `narrowed`, `empty`. disabled: it named only this keyword and is switched off (never widened to every keyword). narrowed: it stops naming this keyword and keeps working on the rest. empty: a view naming only this keyword keeps it and shows nothing.
+- `automations` (array of object, required): Automations whose filter names the keyword.
+  - `id` (string, required): Automation id (atm_...).
+  - `name` (string, required): Its name.
+  - `enabled` (boolean, required): Whether it is on now.
+  - `effect` (string, required): one of `disabled`, `narrowed`, `empty`. disabled: it named only this keyword and is switched off (never widened to every keyword). narrowed: it stops naming this keyword and keeps working on the rest. empty: a view naming only this keyword keeps it and shows nothing.
+- `views` (array of object, required): Saved views whose filter names the keyword.
+  - `id` (string, required): View id (vw_...).
+  - `name` (string, required): Its name.
+  - `effect` (string, required): one of `disabled`, `narrowed`, `empty`. disabled: it named only this keyword and is switched off (never widened to every keyword). narrowed: it stops naming this keyword and keeps working on the rest. empty: a view naming only this keyword keeps it and shows nothing.
+
 ### KeywordHealth
 
 - `keyword` (object, required): The keyword the report is about.
@@ -763,6 +872,83 @@ The group the keyword belongs to.
     - `relevant` (integer, required): Relevant posts sampled.
   - `exact` (boolean, required): The sample was the whole window, so the counts are measured, not estimated.
 - `source` (string, required): one of `rules`, `ai`. rules: computed from the window's posts. ai: written by a language model (ai=true).
+
+### KeywordBatchResult
+
+- `data` (array of object, required): One result per keyword sent, in the same order.
+  - `index` (integer, required): Position of the keyword in the request, from 0.
+  - `status` (string, required): one of `created`, `failed`. created: the keyword exists now. failed: nothing was created for it; error says why.
+  - `keyword` (object, required, nullable): The created keyword; null when it failed.
+    - `id` (string, required): Keyword id (kw_...).
+    - `term` (string, required): The tracked text, as typed.
+    - `query` (string, required, nullable): The boolean query the keyword was written as, as sent; term and matching hold what it compiled to. Null for a keyword defined by its fields, or once its term or term rules changed by hand.
+    - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand (your own name), competitor, or topic.
+    - `muted` (boolean, required): Not polled or matched. Paused by you, by the wallet (see pausedForBalance) or by the noise brake (see pausedForNoise). A keyword at its mention cap is not muted (see pausedForCap).
+    - `pausedForBalance` (boolean, required): Muted by the wallet for lack of balance; a top-up resumes it, unmuting by hand needs balance too.
+    - `pausedForNoise` (boolean, required): Muted by the noise brake: under 30% of 20 or more scored matches were relevant, on welcome credit. Changing its rules, platforms or context, or unmuting, resumes it (balance permitting); a top-up does not. See [Billing](/billing).
+    - `pausedForCap` (boolean, required): At its monthly mention cap: not matched until the first of next month (UTC) or until the cap is raised. Not muted: it keeps its place and its daily keyword charge.
+    - `cap` (object, required, nullable): The mention cap and its period, or null for none.
+      - `mentions` (integer, required): Charged items allowed per period (see per): matched mentions plus the thread comments delivered under them. Every match counts, relevant or not, the look-back a new keyword gets included, because every match bills.
+      - `per` (string): one of `day`, `week`, `month`. The period the cap counts in, in UTC: day, week (from Monday) or calendar month (the default). At the cap the keyword stops until the next period starts.
+      - `used` (integer, required): Charged items (matches plus thread comments) counted in the current period: today, this week from Monday or this month, UTC. The keyword pauses when it reaches mentions.
+      - `welcome` (boolean, required): Set by Mentio, not you: a workspace on its welcome credit collects at most 200 mentions a keyword a month. The first top-up removes it.
+      - `own` (integer, required, nullable): Your own cap. With welcome true, the cap the keyword gets back at the first top-up (null for none); otherwise the same as mentions. Sending mentions: 200 back while welcome is true changes nothing.
+      - `ownPer` (string, required, nullable): one of `day`, `week`, `month`. The period of your own cap (null when own is null); with welcome false, the same as per.
+      - `resumesAt` (string, required, nullable): While paused for its cap (pausedForCap): when its next period starts and it matches again. Null otherwise.
+    - `comments` (object, required): Comments under this keyword's relevant mentions, read several times per thread on Hacker News, Bluesky, GitHub, Stack Overflow, DEV, YouTube and Reddit. List them with GET /v1/mentions/{id}/comments; see [Comments](/guides/comments).
+      - `enabled` (boolean, required): Read the comments under this keyword's relevant mentions. Each comment delivered costs $0.008; comments under three words are dropped, never billed. See [Comments](/guides/comments).
+      - `maxPerPost` (integer, required): The newest comments of one thread you receive: the ceiling on what one mention's comments can cost. A comment naming the keyword is a mention only among these.
+    - `display` (object, required): Which of this keyword's mentions you see, by language and country. A hidden post is still matched, classified and billed, but kept out of lists, exports, search, alerts and digests (includeHidden=true shows it). See [Keywords](/guides/keywords#show-only-some-languages-or-countries).
+      - `languages` (object, required): By the language the post is written in (ISO 639-1).
+      - `countries` (object, required): By where the author is (ISO 3166-1 alpha-2), as the classifier read their profile and the post.
+    - `group` (GroupRef, required): The group the keyword belongs to.
+    - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+    - `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
+    - `readsWorkspaceFeeds` (boolean, required): true (the default): the keyword also reads every feed of the workspace (GET /v1/feeds), on top of its own `feeds`. false: its own feeds alone.
+    - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
+    - `context` (string, required, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
+    - `matching` (object, required): Matching rules applied before a mention is stored; a rejected post is never billed.
+      - `requiredTerms` (array of string, required): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
+      - `requiredMode` (string, required): one of `any`, `all`. any: at least one required term must appear. all: every one must.
+      - `requiredGroups` (array of array of string, required): Combinations: the post must ALSO contain every term of at least one group (an OR of ANDs), on top of requiredTerms, with the same phrase and wildcard rules. See [Keywords](/guides/keywords#several-searches-in-one-keyword).
+      - `excludedTerms` (array of string, required): A post containing any of these is dropped. A `*` at the start or the end of an entry is a wildcard (beta.* matches beta.0.1; *bot matches nightlybot).
+      - `excludedAuthors` (array of string, required): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
+      - `caseSensitive` (boolean, required): true: the term must appear in the case it was typed (RAG, never rag). Default false.
+      - `exactPhrase` (boolean, required): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+      - `subreddits` (object, required): Reddit only, for this keyword alone; the workspace filters' own subreddit lists (GET /v1/filters) still apply to every keyword, and a post must pass both.
+      - `repositories` (object, required): GitHub only: which repository events naming this keyword become mentions. An event outside the rule is dropped before it is stored, so it is never billed.
+    - `stats` (object, required): Computed over this workspace's matches.
+      - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
+      - `relevant` (integer, required): Matches scored at or above the relevance threshold.
+      - `last7d` (integer, required): Matches published in the last 7 days.
+      - `thisMonth` (integer, required): Matches recorded this calendar month (UTC), plus the thread comments delivered under this keyword's mentions: the count a cap compares against.
+      - `lastMentionAt` (string, required, nullable): Newest matched post; null until the first one.
+      - `feedback` (object, required): Your verdicts on this keyword's mentions (PATCH /v1/mentions/{id} relevant).
+      - `noise` (object, required): Relevance over the last 14 days of scored matches, so a keyword tightened today stops being flagged within two weeks.
+      - `health` (string, required): one of `healthy`, `noisy`, `quiet`, `capped`, `paused`, `new`. The first status that applies over the last 14 days; see [Keyword health](/guides/keyword-health).
+
+- paused: muted.
+- capped: at its mention cap.
+- noisy: 20 or more scored matches, under 30% relevant.
+- new: under 7 days old, or changed lately with few scored matches.
+- quiet: 7 days or older, nothing relevant.
+- healthy: none of the above.
+      - `cost` (object, required): What this keyword has cost this calendar month (UTC) at list price: its row in GET /v1/usage/breakdown?month=<this month>. The ledger differs only by cumulative rounding.
+    - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
+      - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, threads, mastodon
+- Developer: hackernews, github, stackoverflow, devto
+- Media: news, youtube, podcasts (with transcripts), rss (keyword feeds)
+- Web: web (blogs), substack, producthunt
+- Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
+      - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
+      - `emptyPolls` (integer, required): Consecutive polls that found nothing new; the scheduler slows down as it grows.
+    - `createdAt` (string, required): ISO 8601 timestamp, UTC.
+  - `error` (object, required, nullable): Why it failed; null when created.
+    - `code` (string, required): The error code it would have got alone: duplicate_keyword, validation_error, invalid_query, query_needs_one_term, query_not_supported, not_found (its group), insufficient_balance, keyword_limit_reached.
+    - `message` (string, required): What went wrong, for a person.
+- `created` (integer, required): Keywords created.
+- `failed` (integer, required): Keywords refused.
 
 ### InvoiceList
 

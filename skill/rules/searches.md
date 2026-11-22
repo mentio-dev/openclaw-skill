@@ -2,7 +2,7 @@
 
 # On-demand searches
 
-A search reads one term over the last `24h`, `7d` or `30d` (`range`, default 7d) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack, threads, mastodon; `platforms` narrows it; devto, news and producthunt have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. `kind` (`brand`, `competitor`, `topic`, the default) and `context` tell the classifier what the term is, as on a keyword.
+A search reads one term over the last `24h`, `7d`, `30d`, `90d` or `365d` (`range`, default 7d; past 30 days linkedin, tiktok, facebook, instagram, threads, web and substack cannot reach and come back skipped with reason `window`) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack, threads, mastodon; `platforms` narrows it; devto, news and producthunt have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. `kind` (`brand`, `competitor`, `topic`, the default) and `context` tell the classifier what the term is, as on a keyword.
 
 Results stay APART from the mentions: no alert, digest, report or count sees them, and a search never creates a keyword. `alreadyInWorkspace` on a result says the post is already one of the user's mentions. When the user wants to keep listening, create a keyword (rules/keywords.md); a search is a one-off look.
 
@@ -59,7 +59,10 @@ CLI: `mentio searches:create`
 Body (JSON):
 
 - `term` (string, required): The word or phrase to search, case-insensitive, matched as the phrase (written joined or as a hashtag counts). Quotes are not needed.
-- `range` (string): one of `24h`, `7d`, `30d`. How far back the search reads, ending now: 24h, 7d or 30d. Instagram reads at most its last 7 days whatever the range.
+- `range` (string): one of `24h`, `7d`, `30d`, `90d`, `365d`. How far back the search reads, ending now. See [Search](/guides/search#platforms).
+
+- 24h, 7d, 30d: every platform (instagram at most 7 days).
+- 90d, 365d: only platforms reaching that far; the others are skipped (window).
 - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to read; omit for all that search back in time (bluesky, hackernews, github, stackoverflow, reddit, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack, threads, mastodon). devto, news and producthunt are skipped.
 - `kind` (string): one of `brand`, `competitor`, `topic`. What the term is to you, as on a keyword: brand (your company or product), competitor, or topic (the default). The classifier judges relevance with it.
 - `context` (string): A sentence the classifier reads for this search only, on top of the company profile: what the term means here, what to ignore.
@@ -104,10 +107,10 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results) or adjustment.
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results), debit_estimates (paid samples of keyword estimates) or adjustment.
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row; on debit_estimates, the paid samples of that one estimate.
   - `note` (string, required, nullable): Free text on credits and adjustments.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `createdAt` (string, required): ISO 8601 timestamp, UTC.
@@ -117,7 +120,10 @@ Returns: 200, a `LedgerList` (see Shapes below).
 
 - `id` (string, required): Search id (srch_...).
 - `term` (string, required): The term searched, as typed.
-- `range` (string, required): one of `24h`, `7d`, `30d`. How far back the search reads, ending now: 24h, 7d or 30d. Instagram reads at most its last 7 days whatever the range.
+- `range` (string, required): one of `24h`, `7d`, `30d`, `90d`, `365d`. How far back the search reads, ending now. See [Search](/guides/search#platforms).
+
+- 24h, 7d, 30d: every platform (instagram at most 7 days).
+- 90d, 365d: only platforms reaching that far; the others are skipped (window).
 - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic: what the classifier was told the term is.
 - `context` (string, required, nullable): The hint the classifier read, or null.
 - `status` (string, required): one of `queued`, `running`, `done`, `failed`. queued: accepted, nothing read yet. running: platforms being read or results scored. done: every platform reported and every result scored. failed: no platform could be read.
@@ -130,7 +136,13 @@ Returns: 200, a `LedgerList` (see Shapes below).
 - Web: web (blogs), substack, producthunt
 - Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
   - `status` (string, required): one of `queued`, `running`, `done`, `skipped`, `failed`. queued: not read yet. running: being read or scored. done: read and scored. skipped: not read (see reason). failed: the read failed (see reason).
-  - `reason` (string, required, nullable): one of `unsupported`, `credentials`, `budget`, `rate_limited`, `error`, `timeout`. Why a platform was skipped or failed: unsupported (no term search on it), credentials (not connected on this deployment), budget (its monthly vendor budget is spent), rate_limited, error, timeout. null otherwise.
+  - `reason` (string, required, nullable): one of `unsupported`, `window`, `credentials`, `budget`, `rate_limited`, `error`, `timeout`. Why a platform was skipped or failed; null otherwise.
+
+- unsupported: no term search on it.
+- window: its search cannot reach that far back.
+- credentials: not connected on this deployment.
+- budget: its monthly vendor budget is spent.
+- rate_limited, error, timeout: the read failed.
   - `results` (integer, required): Results stored for this platform, at most 25.
   - `relevant` (integer, required): Of them, scored relevant (40 or more).
 - `stats` (object, required): Counts across platforms.

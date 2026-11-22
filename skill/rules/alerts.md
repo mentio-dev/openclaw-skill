@@ -8,7 +8,7 @@ Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack t
 
 Webhook payloads are `{ id, event, createdAt, alert: {id, name}, data }`; `event` is the rule's own name (`mention.negative`, `mention.buy_intent`, anything lowercase and dotted) so one endpoint can serve many rules, defaulting to `mention.matched` for instant rules and `digest` for daily ones. `data` is the mention or the digest exactly as the API shapes it. A 2xx within 10 seconds is success; timeouts, 408, 429 and 5xx are retried up to 5 times about 30 seconds apart with the same `id`, so consumers deduplicate on it.
 
-Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (`mention.spike`), whose negative share of the last 24 hours jumped (`sentiment.negative_spike`), that turned noisy (`keyword.noisy`), or a channel whose last 5 sends failed (`channel.failing`). `GET /v1/attention` lists the open ones (`status=all` for the history, `kind` to narrow), each with a one-line `title` and its facts in `data` (`data.url` is the dashboard page to look at); an item resolves on its own when the condition is gone, and `POST /v1/attention/{id}/dismiss` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with `events` like the keyword and wallet events, and Slack, email, Telegram, Discord and Teams channels can subscribe to these four only (`PATCH /v1/channels/{id}` with `events`). When the user asks what needs a look, start with the open attention items.
+Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (`mention.spike`), whose negative share of the last 24 hours jumped (`sentiment.negative_spike`), that turned noisy (`keyword.noisy`), a channel whose last 5 sends failed (`channel.failing`), a person with 100,000+ followers whose relevant mention nobody answered for 3 hours (`mention.unanswered_influencer`, one item per person about their newest such post), or many relevant posts on one keyword sharing an intent tag or a hashtag in 24 hours (`mention.topic_cluster`). `GET /v1/attention` lists the open ones (`status=all` for the history, `kind` to narrow), each with a one-line `title` and its facts in `data` (`data.url` is the dashboard page to look at); an item resolves on its own when the condition is gone, and `POST /v1/attention/{id}/dismiss` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with `events` like the keyword and wallet events, and Slack, email, Telegram, Discord and Teams channels can subscribe to the attention events only (`PATCH /v1/channels/{id}` with `events`). When the user asks what needs a look, start with the open attention items.
 
 Testing: `POST /v1/channels/{id}/test` sends `event: "test"` to one channel, `POST /v1/alerts/{id}/test` through every channel of a rule, `POST /v1/alerts/{id}/run` sends a daily rule's last 24 hours now without moving its schedule, and `GET /v1/channels/{id}/deliveries` shows what went out and how it went. Confirm before deleting a rule or a channel and before rotating a secret (the old one stops verifying at once).
 
@@ -306,27 +306,27 @@ Body (JSON):
   - `kind` (string, required): one of `slack`. Channel kind.
   - `channelId` (string, required): A Slack channel id from the connected workspace.
   - `channelName` (string, required): The channel name, for the label.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
 - Variant 2 (`kind` = `email`):
   - `kind` (string, required): one of `email`. Channel kind.
   - `emails` (array of string, required): Each address gets a confirmation link; workspace members are confirmed on sight.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
 - Variant 3 (`kind` = `webhook`):
   - `kind` (string, required): one of `webhook`. Channel kind.
   - `url` (string, required): Where the signed POSTs go. https in production.
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
-  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
+  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
 - Variant 4 (`kind` = `discord`):
   - `kind` (string, required): one of `discord`. Channel kind.
   - `url` (string, required): The Discord incoming webhook URL, https://discord.com/api/webhooks/<id>/<token> (in Discord: Channel settings, Integrations, Webhooks, Copy Webhook URL). A ?thread_id= posts into a thread. Write-only: reads show urlHint.
   - `label` (string): A name for the channel ("#alerts on our server"); "Discord" when omitted.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
 - Variant 5 (`kind` = `teams`):
   - `kind` (string, required): one of `teams`. Channel kind.
   - `url` (string, required): The Teams Workflows webhook URL (in Teams: the channel's menu, Workflows, "Send webhook alerts to a channel", then copy the URL it gives). Office 365 connector URLs (webhook.office.com), retired by Microsoft in 2026, are refused. Write-only: reads show urlHint.
   - `label` (string): A name for the channel ("Marketing > Mentions"); "Teams" when omitted.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
 
 Returns: 201, a `Channel` (see Shapes below).
 
@@ -357,7 +357,7 @@ Body (JSON): Omitted fields are untouched.
 - `label` (string): Your name for the channel.
 - `url` (string): Webhook, Discord and Teams channels: a new URL (for Discord and Teams, a new incoming webhook URL, checked like on create).
 - `headers` (object): Webhooks only; replaces the whole set.
-- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -430,7 +430,7 @@ CLI: `mentio attention:list`
 Query:
 
 - `status` (string): one of `open`, `resolved`, `dismissed`, `all`. open (default), resolved, dismissed, or all.
-- `kind` (string): Only these kinds, comma separated: mention.spike, sentiment.negative_spike, keyword.noisy, channel.failing, feed.failing (feed.recovered never opens an item).
+- `kind` (string): Only these kinds, comma separated: mention.spike, sentiment.negative_spike, keyword.noisy, channel.failing, feed.failing, mention.unanswered_influencer, mention.topic_cluster (feed.recovered never opens an item).
 - `limit` (integer): Items per page, newest first; 50 by default, at most 100.
 - `cursor` (string): nextCursor from the previous page.
 
@@ -589,7 +589,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `channelId` (string, required): Slack channel id.
   - `channelName` (string, required): Slack channel name, without the #.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### EmailChannel
 
@@ -608,7 +608,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `recipients` (array of object, required): Every address on the list and whether it confirmed.
     - `email` (string, required): Recipient address.
     - `confirmedAt` (string, required, nullable): Null until the address confirmed through its link; unconfirmed addresses receive nothing.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### WebhookChannel
 
@@ -626,7 +626,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
-  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
+  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
   - `secret` (string): Only on creation and rotation. Signs every request: X-Mentions-Signature-V2 is v2= plus the hex HMAC-SHA256 of "<X-Mentions-Timestamp>.<raw body>" (reject a timestamp older than a few minutes); X-Mentions-Signature, the hex HMAC-SHA256 of the raw body alone, stays for older verifiers.
 
 ### TelegramChannel
@@ -645,7 +645,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `chatId` (string, required): Telegram chat id.
   - `chatType` (string, required): one of `private`, `group`, `supergroup`, `channel`. private, group, supergroup or channel.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### DiscordChannel
 
@@ -662,7 +662,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `kind` (string, required): one of `discord`. Channel kind.
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `urlHint` (string, required): The Discord webhook URL with its token hidden; the full URL is write-only.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### TeamsChannel
 
@@ -679,7 +679,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `kind` (string, required): one of `teams`. Channel kind.
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `urlHint` (string, required): The Teams Workflows URL with its signature hidden; the full URL is write-only.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
 ### Channel
 
@@ -689,10 +689,10 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`, `Dis
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results) or adjustment.
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `adjustment`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results), debit_estimates (paid samples of keyword estimates) or adjustment.
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row.
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row; on debit_estimates, the paid samples of that one estimate.
   - `note` (string, required, nullable): Free text on credits and adjustments.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `createdAt` (string, required): ISO 8601 timestamp, UTC.
@@ -701,21 +701,23 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`, `Dis
 ### AttentionItem
 
 - `id` (string, required): Attention item id (att_...).
-- `kind` (string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. - mention.spike: far more mentions in the last hour than usual.
+- `kind` (string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. - mention.spike: far more mentions in the last hour than usual.
 - sentiment.negative_spike: the negative share of the last 24 hours jumped.
 - keyword.noisy: most scored matches are noise.
 - channel.failing: the channel's last sends all failed.
 - feed.failing: a workspace feed failed its last 3 hourly reads.
 - feed.recovered: it read again after failing.
+- mention.unanswered_influencer: a top influencer's relevant mention is still open after 3 hours.
+- mention.topic_cluster: posts on one keyword share a tag in 24 hours.
 - `status` (string, required): one of `open`, `resolved`, `dismissed`. open: the condition holds. resolved: it no longer does. dismissed: a person put it away; it does not come back for the same episode.
 - `subject` (object, required): What the item is about.
-  - `type` (string, required): one of `keyword`, `channel`, `feed`. keyword, channel or feed.
-  - `id` (string, required): The keyword (kw_...), the channel (dest_...) or the feed (fd_...).
+  - `type` (string, required): one of `keyword`, `channel`, `feed`, `mention`. keyword, channel, feed or mention.
+  - `id` (string, required): The keyword (kw_...), the channel (dest_...), the feed (fd_...) or the mention (mm_...).
 - `title` (string, required): One line for a person: what happened.
 - `openedAt` (string, required): When the condition was first seen.
 - `resolvedAt` (string, required, nullable): When it no longer held; null while it does.
 - `dismissedAt` (string, required, nullable): When a person dismissed it; null if nobody did.
-- `data` (one of MentionSpikeEventData | NegativeSpikeEventData | KeywordNoisyEventData | ChannelFailingEventData | FeedFailingEventData, required): The facts as they stood when it opened: the same object the account event of the same name carries as `data`.
+- `data` (one of MentionSpikeEventData | NegativeSpikeEventData | KeywordNoisyEventData | ChannelFailingEventData | FeedFailingEventData | UnansweredInfluencerEventData | TopicClusterEventData, required): The facts as they stood when it opened: the same object the account event of the same name carries as `data`.
 
 ### MentionSpikeEventData
 
@@ -802,3 +804,50 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`, `Dis
 - `detail` (string, required, nullable): What the last failed read saw, in a few words.
 - `failingSince` (string, required): When it started failing: the third failed read in a row.
 - `keywordsAffected` (integer, required): Live keywords of the workspace that read workspace feeds: what misses its posts while it fails.
+
+### UnansweredInfluencerEventData
+
+- `attentionId` (string, required): The attention item (att_...): GET /v1/attention lists it, POST /v1/attention/{id}/dismiss puts it away.
+- `url` (string, required): Where to look in the dashboard.
+- `author` (object, required): Who posted.
+  - `id` (string, required): The person (aut_...): GET /v1/people/{id}.
+  - `name` (string, required, nullable): Their name on the platform.
+  - `url` (string, required, nullable): Their profile.
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Where they posted.
+  - `followers` (integer, required): Followers when they last posted.
+  - `influence` (integer, required): 0 to 100, from followers (100 at 100,000 or more).
+- `keyword` (object, required): The keyword the item is about.
+  - `id` (string, required): Keyword id (kw_...).
+  - `term` (string, required): The tracked term.
+  - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+  - `name` (string, required): The keyword as Mentio names it: the term, or "term (Group)" outside the default group.
+  - `groupId` (string, required): Its group (grp_...).
+- `mentions` (integer, required): Their relevant mentions of the last 48 hours still open (not done or ignored) 3 hours or more after they matched.
+- `mention` (object, required): The newest open mention, the one to answer first.
+  - `id` (string, required): The newest of them (mm_...): GET /v1/mentions/{id}.
+  - `url` (string, required): The post.
+  - `relevance` (integer, required): Its relevance score.
+  - `publishedAt` (string, required): When it was posted.
+  - `matchedAt` (string, required): When Mentio matched it.
+
+### TopicClusterEventData
+
+- `attentionId` (string, required): The attention item (att_...): GET /v1/attention lists it, POST /v1/attention/{id}/dismiss puts it away.
+- `url` (string, required): Where to look in the dashboard.
+- `keyword` (object, required): The keyword the item is about.
+  - `id` (string, required): Keyword id (kw_...).
+  - `term` (string, required): The tracked term.
+  - `kind` (string, required): one of `brand`, `competitor`, `topic`. brand, competitor or topic.
+  - `name` (string, required): The keyword as Mentio names it: the term, or "term (Group)" outside the default group.
+  - `groupId` (string, required): Its group (grp_...).
+- `window` (object, required): The stretch of time the counts cover, by match time.
+  - `from` (string, required): Start, inclusive.
+  - `to` (string, required): End, exclusive.
+- `tag` (object, required): What the posts share.
+  - `type` (string, required): one of `intent`, `hashtag`. intent: a tag the classifier gave (question, complaint, comparison...). hashtag: a hashtag the posts carry, lowercase, without the #.
+  - `value` (string, required): The tag.
+- `count` (integer, required): Relevant posts of the window carrying it (posts at most 3 days old when matched).
+- `authors` (integer, required): Different authors among them.
+- `baseline` (object, required): What the keyword usually gets.
+  - `count` (integer, required): Posts carrying it in the 7 days before the window.
+  - `perDay` (number, required): The usual daily count, smoothed so a tag the keyword never had still needs a crowd.
