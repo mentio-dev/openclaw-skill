@@ -141,6 +141,13 @@ Body (JSON):
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+  - `onlyAuthors` (array of string): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+  - `termIn` (array of string): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
   - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
     - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
 
@@ -221,6 +228,13 @@ Body (JSON): Omitted fields are untouched.
   - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
   - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
   - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+  - `onlyAuthors` (array of string): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+  - `termIn` (array of string): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
   - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
     - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
 
@@ -359,6 +373,13 @@ Body (JSON):
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
     - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+    - `onlyAuthors` (array of string): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+    - `termIn` (array of string): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
     - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
       - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
 
@@ -667,6 +688,13 @@ The group the keyword belongs to.
 - new: every repository created; opt in, mostly noise.
     - `minStars` (integer, required, nullable): Only repositories with at least this many stars; null for no minimum.
     - `minWeeklyStars` (integer, required, nullable): Only repositories that gained at least this many stars in the last 7 days, for every event; an unknown week fails. null: growth needs 100 stars and 20% a week, other events nothing.
+  - `onlyAuthors` (array of string, required): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+  - `termIn` (array of string, required): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
 - `stats` (object, required): Computed over this workspace's matches.
   - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
   - `relevant` (integer, required): Matches scored at or above the relevance threshold.
@@ -826,6 +854,13 @@ The group the keyword belongs to.
     - `excludedAuthors` (array of string): Posts by these authors are dropped: profile or post links, @handles, u/names, Bluesky DIDs or display names, stored in canonical form like an alert's muted list.
     - `caseSensitive` (boolean): true: the term must appear in the case it was typed (RAG, never rag). Default false.
     - `exactPhrase` (boolean): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
+    - `onlyAuthors` (array of string): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+    - `termIn` (array of string): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
     - `repositories` (object): GitHub only: each field is replaced when sent, kept when omitted; null clears a minimum.
       - `events` (array of string): one of `new`, `traction`, `stars`, `growth`. The repository events this keyword takes (default traction, stars, growth; empty: none). See [GitHub](/platforms/github#repositories).
 
@@ -917,6 +952,13 @@ The group the keyword belongs to.
       - `exactPhrase` (boolean, required): true: only the exact phrase matches (a term sent in double quotes sets it). false: a multi-word keyword also matches its words close together, kept and billed only when scored relevant. See [Keywords](/guides/keywords#the-exact-phrase-only).
       - `subreddits` (object, required): Reddit only, for this keyword alone; the workspace filters' own subreddit lists (GET /v1/filters) still apply to every keyword, and a post must pass both.
       - `repositories` (object, required): GitHub only: which repository events naming this keyword become mentions. An event outside the rule is dropped before it is stored, so it is never billed.
+      - `onlyAuthors` (array of string, required): When non-empty, only posts BY these accounts match, in the forms excludedAuthors takes; a Bluesky handle is stored with its DID. Reviews and comments read under a mention are exempt.
+      - `termIn` (array of string, required): one of `title`, `body`, `url`, `author`. Where the term must appear, any part listed; empty: anywhere; reviews are exempt. See [Keywords](/guides/keywords#where-the-term-must-appear).
+
+- title: the post's title (none on X, Bluesky or LinkedIn).
+- body: the text after the title.
+- url: the post's link.
+- author: the author's name or handle.
     - `stats` (object, required): Computed over this workspace's matches.
       - `mentions` (integer, required): Every match ever, relevant or not: the number billing counts.
       - `relevant` (integer, required): Matches scored at or above the relevance threshold.
