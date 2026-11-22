@@ -95,7 +95,7 @@ Body (JSON):
 - `filter` (object): Which mentions the rule sends. Default: every relevant mention.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
@@ -163,7 +163,7 @@ Body (JSON): Omitted fields are untouched.
 - `filter` (object): Replaces the whole filter.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
@@ -463,8 +463,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
 - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
 - `notGroupIds` (array of string): Never matches of keywords in these groups.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
 - `minRelevance` (integer): Only mentions scored at least this.
@@ -529,7 +529,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `filter` (object, required): Which mentions the rule sends.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.

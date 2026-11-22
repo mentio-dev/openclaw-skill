@@ -64,7 +64,7 @@ CLI: `mentio people:list`
 Query:
 
 - `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
 - `tag` (string): Deprecated: use tags. Only people carrying this tag (exact, case-sensitive); combines with tags as either.
@@ -75,14 +75,14 @@ Query:
 - `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
 - `since` (string): Deprecated: use from. Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
 - `segmentId` (string): A saved segment applied on top of every other filter here. Unknown id: 404.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): People carrying any of these tags. Repeatable, or comma-separated.
 - `minFollowers` (integer, nullable): At least this many followers. Unknown reach never matches.
 - `maxFollowers` (integer, nullable): At most this many followers.
 - `minMentions` (integer): At least this many matched mentions.
 - `minNegative` (integer): At least this many negative mentions.
 - `intents` (array of string, nullable): At least one mention carrying any of these intents.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms. Repeatable, or comma-separated.
 - `notTags` (array of string, nullable): Nobody carrying any of these tags. Repeatable, or comma-separated.
 - `notIntents` (array of string, nullable): Nobody whose mentions carry any of these intents. Repeatable, or comma-separated.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
@@ -264,7 +264,7 @@ CLI: `mentio people:export`
 Query:
 
 - `groupId` (string): Scope to one keyword group (grp_...): only people who mentioned that group's keywords, with that group's own tags, notes, mute, merges, activities and segments. Omit for the whole workspace.
-- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
+- `platform` (string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms. People with an account on this platform; combines with platforms as either.
 - `q` (string): Matches the display name or the profile handle or URL, case-insensitively.
 - `handle` (string): Find a person by one of their accounts: a handle (@jane, u/jane, jane) or a profile or post link (https://x.com/jane). Exact, case-insensitive, merged accounts included; combine with platform to pick one platform. A link names its own platform.
 - `tag` (string): Deprecated: use tags. Only people carrying this tag (exact, case-sensitive); combines with tags as either.
@@ -275,14 +275,14 @@ Query:
 - `timezone` (string): IANA zone that days in range, from and to are cut in (Europe/Madrid). Default UTC.
 - `since` (string): Deprecated: use from. Only people whose first matched mention is at or after this instant (ISO 8601, or epoch ms).
 - `segmentId` (string): A saved segment applied on top of every other filter here. Unknown id: 404.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms. Repeatable, or comma-separated.
 - `tags` (array of string, nullable): People carrying any of these tags. Repeatable, or comma-separated.
 - `minFollowers` (integer, nullable): At least this many followers. Unknown reach never matches.
 - `maxFollowers` (integer, nullable): At most this many followers.
 - `minMentions` (integer): At least this many matched mentions.
 - `minNegative` (integer): At least this many negative mentions.
 - `intents` (array of string, nullable): At least one mention carrying any of these intents.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms. Repeatable, or comma-separated.
 - `notTags` (array of string, nullable): Nobody carrying any of these tags. Repeatable, or comma-separated.
 - `notIntents` (array of string, nullable): Nobody whose mentions carry any of these intents. Repeatable, or comma-separated.
 - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
@@ -330,7 +330,7 @@ Body (JSON):
 - `name` (string, required): Segment name, unique in its scope.
 - `description` (string): What the segment is for.
 - `filter` (object): The people filter (the fields of GET /v1/people).
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
   - `maxFollowers` (integer): At most this many followers. Unknown reach never matches.
@@ -339,7 +339,7 @@ Body (JSON):
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
   - `notTags` (array of string): Nobody carrying any of these tags.
   - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
@@ -389,7 +389,7 @@ Body (JSON): Omitted fields are untouched.
 - `name` (string): Segment name, unique in its scope.
 - `description` (string): What the segment is for.
 - `filter` (object): Replaces the whole filter.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
   - `maxFollowers` (integer): At most this many followers. Unknown reach never matches.
@@ -398,7 +398,7 @@ Body (JSON): Omitted fields are untouched.
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
   - `notTags` (array of string): Nobody carrying any of these tags.
   - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
@@ -442,17 +442,17 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 ### Person
 
 - `id` (string, required): Person id (aut_...): the canonical account. An account merged into someone resolves to that person.
-- `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform of the canonical account; `accounts` lists every account.
+- `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform of the canonical account; `accounts` lists every account.
 - `name` (string, required, nullable): Display name as of their newest post; null when the platform has none.
 - `handle` (string, required, nullable): Platform handle of the canonical account, formatted as the platform shows it.
 - `url` (string, required, nullable): Profile URL of the canonical account.
 - `avatarUrl` (string, required, nullable): Profile picture URL.
 - `accounts` (array of object, required): Every account this workspace treats as this person, the canonical one first.
   - `id` (string, required): The account id (aut_...); the canonical one equals the person id.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
-- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, threads, mastodon
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Media: news, youtube, podcasts (with transcripts), rss (keyword feeds)
 - Web: web (blogs), substack, producthunt
 - Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
   - `name` (string, required, nullable): Display name as the platform reports it.
@@ -524,7 +524,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 - `name` (string, required): Suggested segment name.
 - `description` (string, required): What the segment holds, in one sentence.
 - `filter` (object, required): The filter to save with POST /v1/segments.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
   - `maxFollowers` (integer): At most this many followers. Unknown reach never matches.
@@ -533,7 +533,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
   - `notTags` (array of string): Nobody carrying any of these tags.
   - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.
@@ -552,7 +552,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
 - `name` (string, required): Segment name.
 - `description` (string, required): What the segment is for.
 - `filter` (object, required): The people filter it saves (the fields of GET /v1/people).
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. People with an account on any of these platforms.
   - `tags` (array of string): People carrying any of these tags.
   - `minFollowers` (integer): At least this many followers. Unknown reach never matches.
   - `maxFollowers` (integer): At most this many followers. Unknown reach never matches.
@@ -561,7 +561,7 @@ Returns: 200, a `InvoiceList` (see Shapes below).
   - `intents` (array of string): At least one mention carrying any of these intents.
   - `keywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Mentioned a keyword of any of these kinds.
   - `neverKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never mentioned a keyword of these kinds.
-  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
+  - `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Nobody with an account on these platforms.
   - `notTags` (array of string): Nobody carrying any of these tags.
   - `notIntents` (array of string): Nobody whose mentions carry any of these intents.
   - `newSinceDays` (integer): First seen within this many days.

@@ -50,9 +50,9 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `by` (string, required): one of `platform`, `keyword`, `sentiment`, `emotion`, `intent`, `status`, `hour`, `person`, `language`, `country`, `subreddit`, `domain`, `link`, `hashtag`. The dimension to group by:
@@ -89,9 +89,9 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `bucket` (string): one of `day`, `week`. Series bucket: day (default up to 90 days) or week.
@@ -112,9 +112,9 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 - `bucket` (string): one of `hour`, `day`, `week`, `month`. Point granularity: hour (windows of at most 14 days), day, week (Monday start) or month. Default: day up to 90 days, week beyond.
@@ -138,9 +138,9 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -160,9 +160,9 @@ Query:
 - `from` (string): First day, YYYY-MM-DD, inclusive, in `timezone`.
 - `to` (string): Last day, YYYY-MM-DD, inclusive, in `timezone`. Default today.
 - `keywordIds` (array of string, nullable): Only these keyword ids. Repeatable, or comma-separated; omit for every keyword.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only these platforms. Repeatable, or comma-separated; omit for every platform.
 - `notKeywordIds` (array of string, nullable): Never these keyword ids. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never these platforms. Repeatable, or comma-separated.
 - `compare` (boolean): true adds the period of the same length right before the window as `previous`.
 - `timezone` (string): IANA zone the days are cut in (Europe/Madrid). Default UTC. One offset, the zone's at the end of the window, applies to the whole window.
 
@@ -189,10 +189,10 @@ Returns: 200, a `AnalyticsSummary` (see Shapes below).
   - `person` (object, required, nullable): by=person only; null otherwise.
     - `id` (string, required, nullable): Person id (aut_...); null for posts ingested before people were linked.
     - `name` (string, required, nullable): Display name as the platform shows it.
-    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
-- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
+    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, threads, mastodon
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Media: news, youtube, podcasts (with transcripts), rss (keyword feeds)
 - Web: web (blogs), substack, producthunt
 - Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
     - `url` (string, required, nullable): Profile URL.

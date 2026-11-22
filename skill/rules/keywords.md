@@ -95,13 +95,13 @@ Query:
 - `kinds` (array of string): one of `brand`, `competitor`, `topic`. Only these kinds: brand, competitor, topic. Repeatable, or comma-separated.
 - `notKinds` (array of string): one of `brand`, `competitor`, `topic`. Never these kinds. Repeatable, or comma-separated.
 - `notStatuses` (array of string): one of `active`, `muted`, `paused`, `noisy`, `capped`. Never keywords in these states. Repeatable, or comma-separated.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never keywords tracked on any of these platforms (by the same reading as platforms). Repeatable, or comma-separated.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never keywords tracked on any of these platforms (by the same reading as platforms). Repeatable, or comma-separated.
 - `statuses` (array of string): one of `active`, `muted`, `paused`, `noisy`, `capped`. Only keywords in these states: active, muted, paused, noisy, capped. Repeatable, or comma-separated.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only keywords tracked on any of these platforms: its term searched there (every platform when its platforms are null), or for appstore and googleplay, an app of that store among its reviewSources. Repeatable, or comma-separated.
 - `groupId` (array of string, nullable): Deprecated: use groupIds, the same filter; both are read as one list.
 - `kind` (array of string): one of `brand`, `competitor`, `topic`. Deprecated: use kinds, the same filter; both are read as one list.
 - `status` (array of string): one of `active`, `muted`, `paused`, `noisy`, `capped`. Deprecated: use statuses, the same filter; both are read as one list.
-- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms, the same filter; both are read as one list.
+- `platform` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Deprecated: use platforms, the same filter; both are read as one list.
 - `sort` (string): one of `newest`, `oldest`, `term`, `mentions`, `relevant`, `recent`, `lastMention`. newest: created most recently first. oldest: the reverse. term: A to Z. mentions: most matches first. relevant: most relevant matches first. recent: most matches in the last 7 days first. lastMention: newest matched post first, keywords with none last.
 - `limit` (integer): Page size, 1 to 500. Omit for every keyword after `offset`.
 - `offset` (integer, nullable): Skip this many keywords.
@@ -129,7 +129,7 @@ Body (JSON):
 - Compiled into term and the term rules; never sent with them (400).
 - Each alternative starts with the term; else 400 query_needs_one_term.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
@@ -209,7 +209,7 @@ Body (JSON): Omitted fields are untouched.
 - `query` (string): Rewrites the term (a rename) and the term rules from a boolean query; the other matching fields stay. Never with term or those rules (400). A later hand change of either clears it. See [Keywords](/guides/keywords#write-it-as-a-query).
 - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
 - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
@@ -564,7 +564,7 @@ The group the keyword belongs to.
     - `only` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. When non-empty, a post whose author's country is known and not listed is hidden, one the classifier cannot name included. A post whose author's country nobody could tell is always shown.
     - `excluded` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. A post whose author's country is listed is hidden.
 - `group` (GroupRef, required): The group the keyword belongs to.
-- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
 - `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
 - `readsWorkspaceFeeds` (boolean, required): true (the default): the keyword also reads every feed of the workspace (GET /v1/feeds), on top of its own `feeds`. false: its own feeds alone.
 - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
@@ -619,10 +619,10 @@ The group the keyword belongs to.
     - `commentCents` (integer, required): Those comments at $0.008 each, rounded once on the total.
     - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents: what this keyword has cost this month, in USD cents.
 - `polling` (array of object, required): Poll health per platform polled on a schedule. Live feeds (Bluesky) have no entry.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
-- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, threads, mastodon
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Media: news, youtube, podcasts (with transcripts), rss (keyword feeds)
 - Web: web (blogs), substack, producthunt
 - Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
   - `lastPolledAt` (string, required, nullable): Newest poll of this platform for the term; null until the first one.
@@ -657,10 +657,10 @@ The group the keyword belongs to.
   - `workspaceShare` (number, required, nullable): This keyword's share of the workspace's matches in the window; null when the workspace matched nothing.
   - `judgedSince` (string, required, nullable): When the keyword last changed its rules, platforms or context (or was unmuted), inside the window: status, reasons, noise and suggestions read only matches since, the numbers the whole window. Null: no change inside it.
   - `byPlatform` (array of object, required): One row per platform it matched on, most matches first.
-    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
-- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
+    - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+- Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, threads, mastodon
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Media: news, youtube, podcasts (with transcripts), rss (keyword feeds)
 - Web: web (blogs), substack, producthunt
 - Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
     - `matches` (integer, required): Matches on this platform in the window.
@@ -707,7 +707,7 @@ The group the keyword belongs to.
   - `query` (string): Rewrites the term (a rename) and the term rules from a boolean query; the other matching fields stay. Never with term or those rules (400). A later hand change of either clears it. See [Keywords](/guides/keywords#write-it-as-a-query).
   - `kind` (string): one of `brand`, `competitor`, `topic`. Reclassify it as brand, competitor or topic.
   - `muted` (boolean): A muted keyword stops polling and matching; its mentions stay.
-  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
+  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Replaces the platform list; null means every platform, [] none (reviews only, when the keyword has reviewSources).
   - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
   - `matching` (object): Omitted fields are untouched; an empty list clears one.
     - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
