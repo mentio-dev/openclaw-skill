@@ -316,7 +316,7 @@ Body (JSON):
   - `url` (string, required): Where the signed POSTs go. https in production.
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
-  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
+  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
 - Variant 4 (`kind` = `discord`):
   - `kind` (string, required): one of `discord`. Channel kind.
   - `url` (string, required): The Discord incoming webhook URL, https://discord.com/api/webhooks/<id>/<token> (in Discord: Channel settings, Integrations, Webhooks, Copy Webhook URL). A ?thread_id= posts into a thread. Write-only: reads show urlHint.
@@ -357,7 +357,7 @@ Body (JSON): Omitted fields are untouched.
 - `label` (string): Your name for the channel.
 - `url` (string): Webhook, Discord and Teams channels: a new URL (for Discord and Teams, a new incoming webhook URL, checked like on create).
 - `headers` (object): Webhooks only; replaces the whole set.
-- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -626,7 +626,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
-  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
+  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `export.ready`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
   - `secret` (string): Only on creation and rotation. Signs every request: X-Mentions-Signature-V2 is v2= plus the hex HMAC-SHA256 of "<X-Mentions-Timestamp>.<raw body>" (reject a timestamp older than a few minutes); X-Mentions-Signature, the hex HMAC-SHA256 of the raw body alone, stays for older verifiers.
 
 ### TelegramChannel

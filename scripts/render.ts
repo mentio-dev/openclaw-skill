@@ -154,6 +154,23 @@ curl -sS "${API}/v1/searches/srch_..." ${AUTH}
 curl -sS "${API}/v1/searches/srch_.../results?minRelevance=40&limit=25" ${AUTH}`,
   },
   {
+    slug: 'exports',
+    title: 'Exports',
+    nouns: ['exports', 'export-schedules'],
+    intro: `An export is a FILE of the mentions a filter selects, written in the background: \`csv\` (the spreadsheet columns) or \`jsonl\` (one whole Mention per line), up to 1,000,000 rows (\`maxRows\`), newest matched first. Use it when the user wants more mentions than a few list pages, or a file for a spreadsheet or a warehouse. The \`filter\` is GET /v1/mentions' own filters as an object, \`viewId\` and \`alertId\` included (\`{}\` is every mention). Exports are not billed. At most 2 run at once and 3,000,000 rows a day per workspace (\`429 rate_limited\`).
+
+\`POST /v1/exports\` answers at once with the export \`queued\`. Poll \`GET /v1/exports/{id}\` every few seconds until \`status\` is \`succeeded\` (\`stats.rows\` grows meanwhile) or \`failed\` (\`error\` says why). Then hand the user \`download.url\`, a signed link that works without a key for an hour (read the export again for a fresh one), or fetch \`GET /v1/exports/{id}/file\` with the key. \`truncated: true\` means more matched than it holds: narrow the filter. Files are kept 7 days.
+
+An export schedule (\`/v1/export-schedules\`) runs one every hour, day or week (UTC), each holding the mentions MATCHED since the previous run, and delivers it as an \`export.ready\` webhook event with a signed link, or writes it into the user's own S3-compatible bucket (S3, R2, GCS, B2). The bucket secret is write-only. Set schedules up only when the user asks, and never ask them to paste a secret into the chat: point them to Settings in the dashboard.`,
+    examples: `# Every negative mention of the last 30 days as a CSV file
+curl -sS -X POST "${API}/v1/exports" ${JSON_HEADERS} \\
+  -d '{"format": "csv", "filter": {"sentiments": ["negative"], "range": "30d"}}'
+
+# Wait for it, then download
+curl -sS "${API}/v1/exports/exp_..." ${AUTH}
+curl -sS "${API}/v1/exports/exp_.../file" ${AUTH} -o mentions.csv`,
+  },
+  {
     slug: 'people',
     title: 'People and segments',
     nouns: ['people', 'segments'],
