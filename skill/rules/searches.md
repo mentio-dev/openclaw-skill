@@ -2,7 +2,7 @@
 
 # On-demand searches
 
-A search reads one term over the last `24h`, `7d` or `30d` (`range`, default 7d) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook; `platforms` narrows it; devto and news have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. `kind` (`brand`, `competitor`, `topic`, the default) and `context` tell the classifier what the term is, as on a keyword.
+A search reads one term over the last `24h`, `7d` or `30d` (`range`, default 7d) WITHOUT creating a keyword: "what was said about globex this month?" when nobody tracks globex. Each platform that can search back in time is read once (bluesky, hackernews, github, stackoverflow, reddit with its comments, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack; `platforms` narrows it; devto, news and producthunt have no search and come back skipped), at most 25 results a platform, and every result is scored for relevance, sentiment and intents against the company profile. `kind` (`brand`, `competitor`, `topic`, the default) and `context` tell the classifier what the term is, as on a keyword.
 
 Results stay APART from the mentions: no alert, digest, report or count sees them, and a search never creates a keyword. `alreadyInWorkspace` on a result says the post is already one of the user's mentions. When the user wants to keep listening, create a keyword (rules/keywords.md); a search is a one-off look.
 
@@ -60,7 +60,7 @@ Body (JSON):
 
 - `term` (string, required): The word or phrase to search, case-insensitive, matched as the phrase (written joined or as a hashtag counts). Quotes are not needed.
 - `range` (string): one of `24h`, `7d`, `30d`. How far back the search reads, ending now: 24h, 7d or 30d. Instagram reads at most its last 7 days whatever the range.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`. The platforms to read; omit for every platform that can search a term back in time (bluesky, hackernews, github, stackoverflow, reddit, x, youtube, linkedin, tiktok, instagram, facebook, podcasts). devto and news have no search and are reported as skipped.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`. Platforms to read; omit for all that search back in time (bluesky, hackernews, github, stackoverflow, reddit, x, youtube, linkedin, tiktok, instagram, facebook, podcasts, web, substack). devto, news and producthunt are skipped.
 - `kind` (string): one of `brand`, `competitor`, `topic`. What the term is to you, as on a keyword: brand (your company or product), competitor, or topic (the default). The classifier judges relevance with it.
 - `context` (string): A sentence the classifier reads for this search only, on top of the company profile: what the term means here, what to ignore.
 
@@ -123,11 +123,12 @@ Returns: 200, a `LedgerList` (see Shapes below).
 - `status` (string, required): one of `queued`, `running`, `done`, `failed`. queued: accepted, nothing read yet. running: platforms being read or results scored. done: every platform reported and every result scored. failed: no platform could be read.
 - `from` (string, required): The start of the window read (the end is createdAt).
 - `platforms` (array of object, required): One entry per platform asked for, in the order asked.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
 - Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (feeds a keyword reads)
-- Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews of a place)
+- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Web: web (blogs), substack, producthunt
+- Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
   - `status` (string, required): one of `queued`, `running`, `done`, `skipped`, `failed`. queued: not read yet. running: being read or scored. done: read and scored. skipped: not read (see reason). failed: the read failed (see reason).
   - `reason` (string, required, nullable): one of `unsupported`, `credentials`, `budget`, `rate_limited`, `error`, `timeout`. Why a platform was skipped or failed: unsupported (no term search on it), credentials (not connected on this deployment), budget (its monthly vendor budget is spent), rate_limited, error, timeout. null otherwise.
   - `results` (integer, required): Results stored for this platform, at most 25.
@@ -146,11 +147,12 @@ Returns: 200, a `LedgerList` (see Shapes below).
 - `id` (string, required): Result id (sres_...).
 - `searchId` (string, required): The search it belongs to (srch_...).
 - `post` (object, required): The post: platform, text, link, publish time and engagement.
-  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
+  - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
 - Social: bluesky, x, reddit, linkedin, facebook, instagram, tiktok, youtube
 - Developer: hackernews, github, stackoverflow, devto
-- Media: news, podcasts (titles, show notes, transcripts), rss (feeds a keyword reads)
-- Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews of a place)
+- Media: news, podcasts (titles, show notes, transcripts), rss (keyword feeds)
+- Web: web (blogs), substack, producthunt
+- Reviews: appstore, googleplay, trustpilot, googlemaps (Google reviews)
   - `kind` (string, required): one of `post`, `comment`, `repository`. post: a top-level post. comment: answers a post or comment (Reddit, Hacker News or YouTube comments, X or Bluesky replies, Stack Overflow answers). repository: a GitHub repository event (see post.repository).
   - `url` (string, required): Permalink of the post.
   - `text` (string, required): Title and body, truncated to 8 KB at ingest.
