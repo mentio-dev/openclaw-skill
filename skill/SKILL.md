@@ -74,6 +74,7 @@ Pipe through `jq` when it is available to pick fields (`| jq '.data[] | {url: .p
 | "Too much noise", "it misses the real ones", "wrong relevance" | `GET /v1/company`, then `PATCH /v1/company` with a sharper `description`, `useCases`, `competitors` and `guidelines` in the user's words | rules/account.md. The company profile is the classifier's context and the biggest lever on relevance; say so. Then the keyword's `context` and `matching`. |
 | "How much is left?", "why did tracking stop?", "what does this cost" | `GET /v1/usage` | rules/account.md. Balance, burn, days left, keywords running and paused, matches today. |
 | "What did keyword X cost?", "where does the money go?", "cost per keyword in September" | `GET /v1/usage/breakdown` | rules/account.md. Grouped `by` keyword, platform or day, over a `range` or a calendar `month`, with the window's totals; every keyword also carries this month's `stats.cost`. |
+| "Add a client", "fund Acme's workspace", "what did each client cost" | `GET /v1/workspaces`, `POST /v1/workspaces`, `POST /v1/workspaces/{id}/transfers`, `GET /v1/usage/breakdown?by=workspace`; inside a client, any call with `Mentio-Workspace: org_...` | rules/workspaces.md. Each client is its own workspace and wallet; confirm before moving money or deleting one. |
 | "Who is on the team?", "invite Ana", "remove Bob" | `GET /v1/members`, `POST /v1/members/invitations`, `DELETE /v1/members/{id}` | rules/account.md. Changes need a signed-in owner or admin (an API key answers `403`: send the user to https://app.mentio.dev/team). Confirm before removing anyone; the last owner cannot go. |
 | "Which workspace is this?", "can this key write?" | `GET /v1/whoami` | Run it once at the start when in doubt. |
 | "Export", "give me a CSV" | `GET /v1/mentions/export.csv` or `GET /v1/people/export.csv` with the same filters as the list | Write it to a file the user names, or `mentions.csv`. |
@@ -100,5 +101,6 @@ Read the one for the area before the first call to it:
 - [rules/alerts.md](rules/alerts.md): rules and channels, daily and weekly digests, webhooks and their signature, testing and the delivery log
 - [rules/analytics.md](rules/analytics.md): the four reports and the window grammar
 - [rules/account.md](rules/account.md): whoami, the company profile the classifier reads, API keys and their expiry, usage and balance, the team, health
+- [rules/workspaces.md](rules/workspaces.md): agency child workspaces, acting in one with the Mentio-Workspace header, transfers and refills, the bill per client, members across clients
 - [rules/errors.md](rules/errors.md): every error code and what to do about it
 - [rules/cli.md](rules/cli.md): the `mentio` CLI, the TypeScript and Python SDKs, the OpenAPI document

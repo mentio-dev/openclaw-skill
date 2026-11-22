@@ -324,6 +324,30 @@ curl -sS -X DELETE "${API}/v1/members/invitations/inv_..." ${AUTH}
 # Is the API up? (no key needed)
 curl -sS "${API}/v1/health"`,
   },
+  {
+    slug: 'workspaces',
+    title: 'Agency workspaces: child workspaces, transfers and their teams',
+    nouns: ['workspaces', 'workspace-members', 'workspace-invitations'],
+    intro: `An agency or a reseller runs one CHILD workspace per client under its own (the parent): each child has its own keywords, alerts, channels, members, data and wallet, and one client never sees another's. Use them when the user manages separate clients; a single company separating campaigns wants keyword groups instead (rules/keywords.md). One level only: a child holds no children.
+
+\`GET /v1/workspaces\` lists the children with each one's wallet, monthly limit, automatic refill and counts; \`POST /v1/workspaces\` creates one (\`name\`, an optional \`externalId\` that is the user's own client id, unique), and the parent must have topped up once (\`402 funding_required\`). To work INSIDE a child, send the same credential with the header \`Mentio-Workspace: org_...\`: every endpoint then reads and writes the child (keywords, mentions, alerts, usage), and \`GET /v1/whoami\` names it with its \`parentId\`. A header naming anything but the credential's own child is a \`403\`. Each child has its own rate limit of 600 requests a minute, and all of a parent's children share 3,000.
+
+Money never pools: a child spends only its own balance and starts at zero with no welcome credit. Fund it with \`POST /v1/workspaces/{id}/transfers\` (\`amountCents\`; \`direction\` \`to_workspace\`, the default, or \`to_parent\` to take money back); a transfer is refused with \`402 insufficient_balance\` when the payer's effective balance cannot cover it, and with \`402 transfer_limit_reached\` past the child's \`monthlyLimitCents\`. \`autoRefill\` (\`thresholdCents\`, \`amountCents\`) on create or \`PATCH /v1/workspaces/{id}\` refills a low child from the parent at most once a UTC day. \`GET /v1/usage/breakdown?by=workspace\` is the agency's bill, one row per workspace. \`DELETE /v1/workspaces/{id}\` deletes a client with all its data; its balance comes back to the parent first. Creating, funding and deleting children needs an owner or admin: signed in, or an API key one of them minted (others answer \`403\`). Confirm with the user before any transfer or delete.
+
+People: \`GET /v1/workspace-members\` lists everyone across the parent and its children; \`POST /v1/workspace-invitations\` invites one address to several children, and \`DELETE /v1/workspace-members/{id}\` removes a person from children. Both need a signed-in owner or admin (an OAuth sign-in), never an API key. The parent's own owners and admins manage every child without being members of it.`,
+    examples: `# The agency's clients
+curl -sS "${API}/v1/workspaces" ${AUTH}
+
+# A new client, funded with $50 and refilled with $20 when under $5
+curl -sS -X POST "${API}/v1/workspaces" ${JSON_HEADERS} -d '{"name": "Acme Corp", "externalId": "cust_42", "autoRefill": {"thresholdCents": 500, "amountCents": 2000}}'
+curl -sS -X POST "${API}/v1/workspaces/org_.../transfers" ${JSON_HEADERS} -d '{"amountCents": 5000}'
+
+# Work inside the client: same key, one header
+curl -sS "${API}/v1/keywords" ${AUTH} -H "Mentio-Workspace: org_..."
+
+# The bill per client this month
+curl -sS "${API}/v1/usage/breakdown?by=workspace&month=2026-11" ${AUTH}`,
+  },
 ];
 
 const METHOD_RANK: Record<string, number> = { get: 0, post: 1, patch: 2, put: 3, delete: 4 };
