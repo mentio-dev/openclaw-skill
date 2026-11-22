@@ -124,14 +124,17 @@ CLI: `mentio keywords:create`
 
 Body (JSON):
 
-- `term` (string): The word or phrase to track, case-insensitive. Required unless `query` is sent. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
+- `term` (string): The word or phrase to track, case-insensitive; send exactly one of term, `query` and `subreddit`. A multi-word term also matches its words close together (see matching.exactPhrase); double quotes mean the exact phrase only.
 - `query` (string): The keyword as one boolean query instead of term and matching, like "acme cloud" AND (pricing OR price*) -jobs ([Keywords](/guides/keywords#write-it-as-a-query)):
 
 - Phrases, words, AND, OR, NOT or -word, parentheses, word-end *
 - Compiled into term and the term rules; never sent with them (400).
 - Each alternative starts with the term; else 400 query_needs_one_term.
+- `subreddit` (object): Follow a whole subreddit in place of `term`: its new posts are read every 3 hours, named or not. Send no `platforms`; `context` says what to keep. See [Follow a whole subreddit](/platforms/reddit#follow-a-whole-subreddit).
+  - `name` (string, required): The subreddit: SaaS, r/SaaS or a reddit.com link to it. A name Reddit would not allow is a 400.
+  - `keep` (string): one of `relevant`, `all`. relevant: the classifier keeps the posts relevant to the keyword's context (else your company); the rest are dropped unbilled. all: every new post is a mention, billed like any.
 - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
-- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
+- `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds. Not with `subreddit` (its platform is Reddit).
 - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
 - `matching` (object): Omitted fields are untouched; an empty list clears one.
   - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
@@ -270,6 +273,8 @@ Body (JSON): Omitted fields are untouched.
 - `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
   - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
 - `readsWorkspaceFeeds` (boolean): true: the keyword also reads the workspace's feeds (GET /v1/feeds), live from now on. false: its own feeds alone.
+- `subreddit` (object): A keyword that follows a subreddit: what it keeps from now on. The subreddit itself cannot change (create another keyword), and a phrase keyword cannot become one (400).
+  - `keep` (string, required): one of `relevant`, `all`. relevant: the classifier keeps the posts relevant to the keyword's context (else your company); the rest are dropped unbilled. all: every new post is a mention, billed like any.
 
 Returns: 200, a `Keyword` (see Shapes below).
 
@@ -356,14 +361,14 @@ CLI: `mentio keywords:create-many`
 Body (JSON):
 
 - `keywords` (array of object, required): The keywords to create, 1 to 100 (10 before the first top-up), in order. Each is created or refused on its own.
-  - `term` (string): The word or phrase to track, case-insensitive. Required unless `query` is sent. A multi-word term matches as the phrase or as its words close together (see matching.exactPhrase); wrap it in double quotes for the exact phrase only.
+  - `term` (string): The word or phrase to track, case-insensitive; send exactly one of term, `query` and `subreddit`. A multi-word term also matches its words close together (see matching.exactPhrase); double quotes mean the exact phrase only.
   - `query` (string): The keyword as one boolean query instead of term and matching, like "acme cloud" AND (pricing OR price*) -jobs ([Keywords](/guides/keywords#write-it-as-a-query)):
 
 - Phrases, words, AND, OR, NOT or -word, parentheses, word-end *
 - Compiled into term and the term rules; never sent with them (400).
 - Each alternative starts with the term; else 400 query_needs_one_term.
   - `kind` (string): one of `brand`, `competitor`, `topic`. brand: your own names. competitor: theirs. topic: the space. Drives share of voice and segments.
-  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds.
+  - `platforms` (array of string, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms to search the term on; omit or null for every platform. [] searches it nowhere: a keyword that only collects reviews or reads feeds, which then needs reviewSources or feeds. Not with `subreddit` (its platform is Reddit).
   - `context` (string, nullable): A sentence the classifier reads for this keyword only, on top of the company profile or group description: what the term means here, what to ignore. "Arc is our browser; ignore the geometry word." Null clears it.
   - `matching` (object): Omitted fields are untouched; an empty list clears one.
     - `requiredTerms` (array of string): The post must ALSO contain these terms, any one of them or all of them per requiredMode. A `*` at the start or the end of an entry is a wildcard (alert* matches alerts and alerting). Empty: no requirement.
@@ -619,6 +624,14 @@ The group the keyword belongs to.
 - `externalId` (string, required, nullable): Your own id for the group, or null.
 - `isDefault` (boolean, required): The workspace's default group, where a keyword lands when no group is named.
 
+### KeywordSubreddit
+
+The subreddit this keyword follows instead of a phrase (its term reads r/<name>); null on a phrase keyword.
+
+- `name` (string, required): The subreddit, without r/.
+- `keep` (string, required): one of `relevant`, `all`. relevant: the classifier keeps the posts relevant to the keyword's context (else your company); the rest are dropped unbilled. all: every new post is a mention, billed like any.
+- `url` (string, required): The subreddit on reddit.com.
+
 ### KeywordFeed
 
 - `url` (string, required): The feed itself (after redirects): what is polled.
@@ -663,7 +676,8 @@ The group the keyword belongs to.
     - `only` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. When non-empty, a post whose author's country is known and not listed is hidden, one the classifier cannot name included. A post whose author's country nobody could tell is always shown.
     - `excluded` (array of string, required): one of `us`, `ca`, `mx`, `br`, `ar`, `co`, `cl`, `pe`, `gb`, `ie`, `fr`, `de`, `es`, `pt`, `it`, `nl`, `be`, `ch`, `at`, `se`, `no`, `dk`, `fi`, `pl`, `cz`, `ro`, `gr`, `hu`, `ua`, `ru`, `lt`, `lv`, `ee`, `tr`, `il`, `ae`, `sa`, `eg`, `ng`, `ke`, `za`, `ma`, `in`, `pk`, `bd`, `lk`, `np`, `cn`, `hk`, `tw`, `jp`, `kr`, `sg`, `my`, `id`, `ph`, `vn`, `th`, `au`, `nz`. A post whose author's country is listed is hidden.
 - `group` (GroupRef, required): The group the keyword belongs to.
-- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+- `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews). ["reddit"] on a keyword that follows a subreddit.
+- `subreddit` (KeywordSubreddit, required, nullable): The subreddit this keyword follows instead of a phrase (its term reads r/<name>); null on a phrase keyword.
 - `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
 - `readsWorkspaceFeeds` (boolean, required): true (the default): the keyword also reads every feed of the workspace (GET /v1/feeds), on top of its own `feeds`. false: its own feeds alone.
 - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.
@@ -896,6 +910,8 @@ The group the keyword belongs to.
   - `feeds` (array of object): Replaces the feeds this keyword reads; [] disconnects them all (their mentions stay). A feed added here is checked now and brings its newest 10 matching items of the last 30 days; one already listed keeps its place.
     - `url` (string, required): A feed's address (https://forum.example.com/posts.rss), or a page's (https://forum.example.com): the feed the page advertises is used.
   - `readsWorkspaceFeeds` (boolean): true: the keyword also reads the workspace's feeds (GET /v1/feeds), live from now on. false: its own feeds alone.
+  - `subreddit` (object): A keyword that follows a subreddit: what it keeps from now on. The subreddit itself cannot change (create another keyword), and a phrase keyword cannot become one (400).
+    - `keep` (string, required): one of `relevant`, `all`. relevant: the classifier keeps the posts relevant to the keyword's context (else your company); the rest are dropped unbilled. all: every new post is a mention, billed like any.
 - `effect` (object, required, nullable): What the change would have done over the window, measured with the matcher's own rules. Null for a context, which changes scores, not matches.
   - `noiseRemoved` (integer, required): Noise matches of the window (since stats.judgedSince when set) the change would have removed (estimated from the sample unless exact).
   - `relevantRemoved` (integer, required): Relevant matches of the window it would have removed.
@@ -937,7 +953,8 @@ The group the keyword belongs to.
       - `languages` (object, required): By the language the post is written in (ISO 639-1).
       - `countries` (object, required): By where the author is (ISO 3166-1 alpha-2), as the classifier read their profile and the post.
     - `group` (GroupRef, required): The group the keyword belongs to.
-    - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews).
+    - `platforms` (array of string, required, nullable): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`. Platforms the term is searched on; null means every platform, [] none (the keyword only collects reviews). ["reddit"] on a keyword that follows a subreddit.
+    - `subreddit` (KeywordSubreddit, required, nullable): The subreddit this keyword follows instead of a phrase (its term reads r/<name>); null on a phrase keyword.
     - `feeds` (array of KeywordFeed, required): RSS and Atom feeds this keyword reads; empty for none.
     - `readsWorkspaceFeeds` (boolean, required): true (the default): the keyword also reads every feed of the workspace (GET /v1/feeds), on top of its own `feeds`. false: its own feeds alone.
     - `reviewSources` (array of ReviewSource, required): Where this keyword collects reviews from (App Store and Google Play apps, Trustpilot pages, Google Maps places); empty for none.

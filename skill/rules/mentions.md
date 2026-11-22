@@ -852,7 +852,7 @@ Returns: 204, no body.
   - `id` (string, required): Keyword id (kw_...).
   - `term` (string, required): The tracked term.
   - `group` (GroupRef, required): The group the keyword belongs to.
-  - `matchedAs` (string, required): one of `phrase`, `close_words`. phrase: the post holds the term as written. close_words: it holds the term's words close together, in another order or form (kept and billed only because the classifier scored it relevant).
+  - `matchedAs` (string, required): one of `phrase`, `close_words`, `subreddit`. phrase: the post holds the term as written. close_words: its words close together, in another order or form (kept because the classifier scored it relevant). subreddit: a post of the followed subreddit, which need not name anything.
   - `matchedIn` (string, required): one of `text`, `speech`. text: the term is in the post itself (its text, caption, hashtags or review). speech: it is only in what is said in the video (TikTok), whose transcript follows the 🎙 mark in post.text.
 - `post` (object, required): The post: platform, text, link, publish time and engagement.
   - `platform` (string, required): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `web`, `substack`, `producthunt`, `threads`, `mastodon`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Platform, one of:
