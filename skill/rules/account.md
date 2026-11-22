@@ -387,7 +387,7 @@ Returns: 200, an object:
 
 - `balance` (object, required): The prepaid wallet.
   - `cents` (integer, required): Ledger balance: every credit minus every settled debit.
-  - `pendingCents` (integer, required): Mentions and comments billed since the last daily settlement, priced but not yet debited.
+  - `pendingCents` (integer, required): Mentions, comments, search results and new followers billed since the last daily settlement, priced but not yet debited.
   - `effectiveCents` (integer, required): cents minus pendingCents: what the stop rule and the keyword gate look at.
   - `currency` (string, required): one of `USD`. Always USD.
 - `burn` (object, required): How fast the balance goes.
@@ -399,9 +399,17 @@ Returns: 200, an object:
   - `capped` (integer, required): Unmuted keywords at their monthly mention cap: still charged daily, not matched until the month turns or the cap is raised.
   - `limit` (integer, required): How many keywords the workspace may run right now: the self-serve ceiling when the balance covers one more keyword-day, else 0.
   - `dayCents` (integer, required): What one more day of the active keywords costs.
+- `accounts` (object, required): Tracked accounts (followers) against the wallet.
+  - `active` (integer, required): Tracked accounts running, the ones charged daily.
+  - `paused` (integer, required): Tracked accounts the wallet paused for lack of balance; a top-up resumes them.
+  - `capped` (integer, required): Running accounts at their monthly follower cap: still charged daily, no follower billed until the month turns or the cap is raised.
+  - `dayCents` (integer, required): What the next day costs for the accounts that pay it: being read, or capped (one not read yet, or failing, pays nothing). keywords.dayCents plus this is a day.
 - `mentions` (object, required): Matched mentions, the other thing that bills.
   - `today` (integer, required): Matches recorded today (UTC), relevant or not: every one bills.
   - `last30d` (integer, required): Matches recorded in the last 30 days.
+- `followers` (object, required): New followers of tracked accounts, billed like mentions.
+  - `today` (integer, required): New followers billed today (UTC), every tracked account.
+  - `last30d` (integer, required): New followers billed in the last 30 days.
 - `stopped` (boolean, required): The wallet paused tracking; a top-up that covers a day of every keyword resumes it.
 - `lowBalance` (boolean, required): Running, and the effective balance is at or under 20 percent of the last credit.
 - `lastTopUpAt` (string, required, nullable): Newest paid top-up; null before the first.
@@ -425,7 +433,11 @@ Returns: 200, an object:
   - `mentionCents` (integer, required): The billed mentions at $0.008 each, rounded once on the total.
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
-  - `totalCents` (integer, required): keywordCents, mentionCents and commentCents, plus searchCents and estimateCents when the report is not filtered: then the window's whole list price. The rows carry keyword spend only.
+  - `totalCents` (integer, required): keywordCents, mentionCents, commentCents, accountCents and followerCents, plus searchCents and estimateCents when the report is not filtered: then the window's whole list price. The rows carry keyword and tracked-account spend only.
+  - `accountDays` (integer, required): Tracked-account days metered: the days the daily tick charged an account for. 0 on by=keyword rows (an account is not a keyword).
+  - `accountCents` (integer, required): The account-days at the account rate ($2 a month, 200/30 cents a day), rounded once on the total.
+  - `billableFollowers` (integer, required): New followers of tracked accounts billed in the window, under the platform and group the account had when they were billed (a moved or deleted account keeps them there).
+  - `followerCents` (integer, required): The new followers at $0.008 each, rounded once on the total.
   - `ledgerDebitCents` (integer, required): What the ledger has debited for the window's days, by the day each debit settled (estimates: when charged), for the whole workspace whatever the filters, searches included. Lags totalCents by unsettled mentions; see [The ledger](/billing#the-ledger).
   - `searchResults` (integer, required): On-demand search results billed in the window (scored then), for the whole workspace whatever the filters.
   - `searchCents` (integer, required): searchResults at $0.008 each, in totals.totalCents when the report is not filtered (never in a row: rows are keyword spend).
@@ -456,16 +468,24 @@ Returns: 200, an object:
   - `billableComments` (integer, required): Comments billed in the window (the comments line): comments delivered under your mentions and comments that matched a keyword, each once per workspace.
   - `commentCents` (integer, required): The billed comments at $0.008 each, rounded once on the total.
   - `totalCents` (integer, required): keywordCents plus mentionCents plus commentCents.
+  - `accountDays` (integer, required): Tracked-account days metered: the days the daily tick charged an account for. 0 on by=keyword rows (an account is not a keyword).
+  - `accountCents` (integer, required): The account-days at the account rate ($2 a month, 200/30 cents a day), rounded once on the total.
+  - `billableFollowers` (integer, required): New followers of tracked accounts billed in the window, under the platform and group the account had when they were billed (a moved or deleted account keeps them there).
+  - `followerCents` (integer, required): The new followers at $0.008 each, rounded once on the total.
 - `total` (integer, required): Rows in the dimension before `limit` and `offset`.
 
 ### LedgerList
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `adjustment`, `transfer_in`, `transfer_out`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results), debit_estimates (paid samples of keyword estimates), adjustment, transfer_in (money moved in from the parent or a child workspace) or transfer_out (money moved out to one).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `debit_account_days`, `debit_followers`, `adjustment`, `transfer_in`, `transfer_out`. The row kind:
+
+- Credits: signup_credit, topup, adjustment, transfer_in (from the parent or a child workspace).
+- Out: refund, transfer_out.
+- Debits: debit_keyword_days, debit_mentions, debit_comments, debit_searches, debit_estimates, debit_account_days (tracked accounts), debit_followers (new followers).
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row; on debit_estimates, the paid samples of that one estimate.
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions, keyword-days, account-days or followers) settled up to this row; on debit_estimates, the paid samples of that one estimate.
   - `note` (string, required, nullable): Free text on credits and adjustments.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `transfer` (object, required, nullable): transfer_in and transfer_out rows: the transfer and the other workspace; null on every other row.
@@ -485,8 +505,10 @@ Returns: 200, an object:
 - `lowBalance` (boolean, required): Running, and the effective balance is at or under 20 percent of the last credit: the same rule as the low-balance email.
 - `activeKeywords` (integer, required): Unmuted keywords.
 - `autoMutedKeywords` (integer, required): Keywords the wallet paused; a top-up resumes them.
-- `nextDayCents` (integer, required): What one more day of the running keywords costs; tracking stops when the effective balance drops under it.
-- `resumeCostCents` (integer, required): What one day of every keyword (running and paused) costs; a stopped workspace resumes once the effective balance covers it.
+- `activeAccounts` (integer, required): Tracked accounts running (followers, $2 a month each).
+- `autoMutedAccounts` (integer, required): Tracked accounts the wallet paused; a top-up resumes them.
+- `nextDayCents` (integer, required): What one more day of the running keywords and tracked accounts costs; tracking stops when the effective balance drops under it.
+- `resumeCostCents` (integer, required): What one day of every keyword and tracked account (running and paused) costs; a stopped workspace resumes once the effective balance covers it.
 - `signupCredit` (object, required, nullable): The welcome credit this workspace received, or null (a second workspace of the same user gets none).
   - `amountCents` (integer, required): Integer USD cents.
   - `grantedAt` (string, required): ISO 8601 timestamp, UTC.

@@ -306,27 +306,27 @@ Body (JSON):
   - `kind` (string, required): one of `slack`. Channel kind.
   - `channelId` (string, required): A Slack channel id from the connected workspace.
   - `channelName` (string, required): The channel name, for the label.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. Attention events and followers.new to receive here, on top of whatever rules send. Omit for none.
 - Variant 2 (`kind` = `email`):
   - `kind` (string, required): one of `email`. Channel kind.
   - `emails` (array of string, required): Each address gets a confirmation link; workspace members are confirmed on sight.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. Attention events and followers.new to receive here, on top of whatever rules send. Omit for none.
 - Variant 3 (`kind` = `webhook`):
   - `kind` (string, required): one of `webhook`. Channel kind.
   - `url` (string, required): Where the signed POSTs go. https in production.
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
-  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
+  - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `followers.new`, `account.paused`, `account.capped`, `account.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
 - Variant 4 (`kind` = `discord`):
   - `kind` (string, required): one of `discord`. Channel kind.
   - `url` (string, required): The Discord incoming webhook URL, https://discord.com/api/webhooks/<id>/<token> (in Discord: Channel settings, Integrations, Webhooks, Copy Webhook URL). A ?thread_id= posts into a thread. Write-only: reads show urlHint.
   - `label` (string): A name for the channel ("#alerts on our server"); "Discord" when omitted.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. Attention events and followers.new to receive here, on top of whatever rules send. Omit for none.
 - Variant 5 (`kind` = `teams`):
   - `kind` (string, required): one of `teams`. Channel kind.
   - `url` (string, required): The Teams Workflows webhook URL (in Teams: the channel's menu, Workflows, "Send webhook alerts to a channel", then copy the URL it gives). Office 365 connector URLs (webhook.office.com), retired by Microsoft in 2026, are refused. Write-only: reads show urlHint.
   - `label` (string): A name for the channel ("Marketing > Mentions"); "Teams" when omitted.
-  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. Attention events to receive here, on top of whatever rules send. Omit for none.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. Attention events and followers.new to receive here, on top of whatever rules send. Omit for none.
 
 Returns: 201, a `Channel` (see Shapes below).
 
@@ -357,7 +357,7 @@ Body (JSON): Omitted fields are untouched.
 - `label` (string): Your name for the channel.
 - `url` (string): Webhook, Discord and Teams channels: a new URL (for Discord and Teams, a new incoming webhook URL, checked like on create).
 - `headers` (object): Webhooks only; replaces the whole set.
-- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `followers.new`, `account.paused`, `account.capped`, `account.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -589,7 +589,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `channelId` (string, required): Slack channel id.
   - `channelName` (string, required): Slack channel name, without the #.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. The account events this channel receives on its own, no rule involved: the attention events (GET /v1/attention) and followers.new (new followers of a tracked account). Empty when it receives none.
 
 ### EmailChannel
 
@@ -608,7 +608,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `recipients` (array of object, required): Every address on the list and whether it confirmed.
     - `email` (string, required): Recipient address.
     - `confirmedAt` (string, required, nullable): Null until the address confirmed through its link; unconfirmed addresses receive nothing.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. The account events this channel receives on its own, no rule involved: the attention events (GET /v1/attention) and followers.new (new followers of a tracked account). Empty when it receives none.
 
 ### WebhookChannel
 
@@ -626,7 +626,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `url` (string, required): Where the signed POSTs go.
   - `headers` (object, required): Extra request headers you configured.
-  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
+  - `events` (array of string, required): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `followers.new`, `account.paused`, `account.capped`, `account.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `export.ready`. The account events this endpoint receives on its own, no rule involved: keyword and wallet state changes and the attention events. Empty when it receives none; mention and digest deliveries come through rules as before.
   - `secret` (string): Only on creation and rotation. Signs every request: X-Mentions-Signature-V2 is v2= plus the hex HMAC-SHA256 of "<X-Mentions-Timestamp>.<raw body>" (reject a timestamp older than a few minutes); X-Mentions-Signature, the hex HMAC-SHA256 of the raw body alone, stays for older verifiers.
 
 ### TelegramChannel
@@ -645,7 +645,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `chatId` (string, required): Telegram chat id.
   - `chatType` (string, required): one of `private`, `group`, `supergroup`, `channel`. private, group, supergroup or channel.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. The account events this channel receives on its own, no rule involved: the attention events (GET /v1/attention) and followers.new (new followers of a tracked account). Empty when it receives none.
 
 ### DiscordChannel
 
@@ -662,7 +662,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `kind` (string, required): one of `discord`. Channel kind.
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `urlHint` (string, required): The Discord webhook URL with its token hidden; the full URL is write-only.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. The account events this channel receives on its own, no rule involved: the attention events (GET /v1/attention) and followers.new (new followers of a tracked account). Empty when it receives none.
 
 ### TeamsChannel
 
@@ -679,7 +679,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `kind` (string, required): one of `teams`. Channel kind.
 - `config` (object, required): The channel's settings for its kind; secrets are never returned.
   - `urlHint` (string, required): The Teams Workflows URL with its signature hidden; the full URL is write-only.
-  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`, `mention.unanswered_influencer`, `mention.topic_cluster`, `followers.new`. The account events this channel receives on its own, no rule involved: the attention events (GET /v1/attention) and followers.new (new followers of a tracked account). Empty when it receives none.
 
 ### Channel
 
@@ -689,10 +689,14 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`, `Dis
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `adjustment`, `transfer_in`, `transfer_out`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results), debit_estimates (paid samples of keyword estimates), adjustment, transfer_in (money moved in from the parent or a child workspace) or transfer_out (money moved out to one).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `debit_account_days`, `debit_followers`, `adjustment`, `transfer_in`, `transfer_out`. The row kind:
+
+- Credits: signup_credit, topup, adjustment, transfer_in (from the parent or a child workspace).
+- Out: refund, transfer_out.
+- Debits: debit_keyword_days, debit_mentions, debit_comments, debit_searches, debit_estimates, debit_account_days (tracked accounts), debit_followers (new followers).
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row; on debit_estimates, the paid samples of that one estimate.
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions, keyword-days, account-days or followers) settled up to this row; on debit_estimates, the paid samples of that one estimate.
   - `note` (string, required, nullable): Free text on credits and adjustments.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `transfer` (object, required, nullable): transfer_in and transfer_out rows: the transfer and the other workspace; null on every other row.

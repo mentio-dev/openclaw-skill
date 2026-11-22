@@ -133,10 +133,14 @@ Returns: 200, a `KeywordEstimate` (see Shapes below).
 
 - `data` (array of object, required): Ledger entries, newest first.
   - `id` (string, required): Ledger entry id (led_...).
-  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `adjustment`, `transfer_in`, `transfer_out`. signup_credit, topup, refund, debit_keyword_days, debit_mentions, debit_comments, debit_searches (on-demand search results), debit_estimates (paid samples of keyword estimates), adjustment, transfer_in (money moved in from the parent or a child workspace) or transfer_out (money moved out to one).
+  - `kind` (string, required): one of `signup_credit`, `topup`, `refund`, `debit_keyword_days`, `debit_mentions`, `debit_comments`, `debit_searches`, `debit_estimates`, `debit_account_days`, `debit_followers`, `adjustment`, `transfer_in`, `transfer_out`. The row kind:
+
+- Credits: signup_credit, topup, adjustment, transfer_in (from the parent or a child workspace).
+- Out: refund, transfer_out.
+- Debits: debit_keyword_days, debit_mentions, debit_comments, debit_searches, debit_estimates, debit_account_days (tracked accounts), debit_followers (new followers).
   - `amountCents` (integer, required): Integer USD cents; credits positive, debits negative.
   - `day` (string, required, nullable): Debit rows: the last UTC day the row settled (YYYY-MM-DD).
-  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions or keyword-days) settled up to this row; on debit_estimates, the paid samples of that one estimate.
+  - `units` (integer, required, nullable): Debit rows: cumulative units (mentions, keyword-days, account-days or followers) settled up to this row; on debit_estimates, the paid samples of that one estimate.
   - `note` (string, required, nullable): Free text on credits and adjustments.
   - `polarOrderId` (string, required, nullable): Top-ups and refunds: the Polar order.
   - `transfer` (object, required, nullable): transfer_in and transfer_out rows: the transfer and the other workspace; null on every other row.

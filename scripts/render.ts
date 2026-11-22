@@ -188,9 +188,11 @@ curl -sS "${API}/v1/keyword-estimates/est_..." ${AUTH}`,
   },
   {
     slug: 'people',
-    title: 'People and segments',
-    nouns: ['people', 'segments'],
-    intro: `People are the authors behind the mentions: one row per person with every account of theirs (\`accounts\`), reach (\`reach.followers\`), the public profile when the platform has one (\`profile\`: bio, company, location, website, email, linked accounts), per-workspace \`stats\` (mentions, negatives, intents seen, first and last seen), the workspace's own \`annotations\` (tags, notes, muted) and its \`outreach\` (the teammate who owns the contact, the stage from \`not_contacted\` to \`customer\` or \`not_a_fit\`, and when someone last reached out). Ids are \`aut_...\`; an account merged into someone resolves to that person.
+    title: 'People, segments and followers',
+    nouns: ['people', 'segments', 'accounts'],
+    intro: `Followers: the workspace can track its OWN social accounts (\`POST /v1/accounts\` with \`platform\` x, instagram, bluesky or github and a \`handle\`) and hear about every new follower. The first read is a baseline (the followers already there, never billed); after it each new follower costs $0.008 and every poll that found some records one \`followers.new\` account event, which a webhook channel receives when subscribed. A tracked account costs $2 a month, debited per day; \`cap.followers\` bounds a month's bill. \`GET /v1/accounts/{id}/followers\` lists the new ones newest first (\`minFollowers\`, \`q\` over handle, name and bio). Adding an account spends money: confirm with the user first.
+
+People are the authors behind the mentions: one row per person with every account of theirs (\`accounts\`), reach (\`reach.followers\`), the public profile when the platform has one (\`profile\`: bio, company, location, website, email, linked accounts), per-workspace \`stats\` (mentions, negatives, intents seen, first and last seen), the workspace's own \`annotations\` (tags, notes, muted) and its \`outreach\` (the teammate who owns the contact, the stage from \`not_contacted\` to \`customer\` or \`not_a_fit\`, and when someone last reached out). Ids are \`aut_...\`; an account merged into someone resolves to that person.
 
 Outreach is logged, not guessed: \`POST /v1/people/{id}/activities\` records that someone reached out (a \`channel\` and a short \`note\`), and \`GET\` on the same path reads the log. The first activity claims an unowned person for whoever reached out and moves them to \`contacted\`; it never takes a person from an owner or moves a stage back (set those with \`PATCH /v1/people/{id}\`). Before suggesting a contact, read the owner and the log so two teammates never write to the same person.
 

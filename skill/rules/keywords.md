@@ -479,7 +479,7 @@ Returns: 200, a `Group` (see Shapes below).
 
 ### DELETE /v1/groups/{id}
 
-**Delete a group and its keywords.** Delete a group and EVERY keyword in it, with their mentions.
+**Delete a group and its keywords.** Delete a group, EVERY keyword in it (with their mentions) and every tracked account in it (with its followers).
 
 Alert rules naming them are adjusted; charges stay on the usage record. The default group cannot be deleted. The group's `stats.keywords` says how many go.
 
