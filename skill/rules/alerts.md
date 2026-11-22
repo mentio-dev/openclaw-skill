@@ -8,7 +8,7 @@ Channels by kind: `slack` and `telegram` are connected in the dashboard (Slack t
 
 Webhook payloads are `{ id, event, createdAt, alert: {id, name}, data }`; `event` is the rule's own name (`mention.negative`, `mention.buy_intent`, anything lowercase and dotted) so one endpoint can serve many rules, defaulting to `mention.matched` for instant rules and `digest` for daily ones. `data` is the mention or the digest exactly as the API shapes it. A 2xx within 10 seconds is success; timeouts, 408, 429 and 5xx are retried up to 5 times about 30 seconds apart with the same `id`, so consumers deduplicate on it.
 
-Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (`mention.spike`), whose negative share of the last 24 hours jumped (`sentiment.negative_spike`), that turned noisy (`keyword.noisy`), or a channel whose last 5 sends failed (`channel.failing`). `GET /v1/attention` lists the open ones (`status=all` for the history, `kind` to narrow), each with a one-line `title` and its facts in `data` (`data.url` is the dashboard page to look at); an item resolves on its own when the condition is gone, and `POST /v1/attention/{id}/dismiss` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with `events` like the keyword and wallet events, and Slack, email and Telegram channels can subscribe to these four only (`PATCH /v1/channels/{id}` with `events`). When the user asks what needs a look, start with the open attention items.
+Attention: once an hour Mentio opens an attention item for a keyword whose fresh mentions spiked in the last hour (`mention.spike`), whose negative share of the last 24 hours jumped (`sentiment.negative_spike`), that turned noisy (`keyword.noisy`), or a channel whose last 5 sends failed (`channel.failing`). `GET /v1/attention` lists the open ones (`status=all` for the history, `kind` to narrow), each with a one-line `title` and its facts in `data` (`data.url` is the dashboard page to look at); an item resolves on its own when the condition is gone, and `POST /v1/attention/{id}/dismiss` puts it away for the rest of its episode. Each opening is also an account event of the same name, sent once: a webhook subscribes with `events` like the keyword and wallet events, and Slack, email, Telegram, Discord and Teams channels can subscribe to these four only (`PATCH /v1/channels/{id}` with `events`). When the user asks what needs a look, start with the open attention items.
 
 Testing: `POST /v1/channels/{id}/test` sends `event: "test"` to one channel, `POST /v1/alerts/{id}/test` through every channel of a rule, `POST /v1/alerts/{id}/run` sends a daily rule's last 24 hours now without moving its schedule, and `GET /v1/channels/{id}/deliveries` shows what went out and how it went. Confirm before deleting a rule or a channel and before rotating a secret (the old one stops verifying at once).
 
@@ -95,7 +95,7 @@ Body (JSON):
 - `filter` (object): Which mentions the rule sends. Default: every relevant mention.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
@@ -163,7 +163,7 @@ Body (JSON): Omitted fields are untouched.
 - `filter` (object): Replaces the whole filter.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
@@ -317,6 +317,16 @@ Body (JSON):
   - `label` (string): A name for the channel; the host of the URL when omitted.
   - `headers` (object): Extra request headers to send, for your own auth.
   - `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Account events to receive at this endpoint (keyword and wallet state changes, attention events), on top of whatever rules send here. Omit for none.
+- Variant 4 (`kind` = `discord`):
+  - `kind` (string, required): one of `discord`. Channel kind.
+  - `url` (string, required): The Discord incoming webhook URL, https://discord.com/api/webhooks/<id>/<token> (in Discord: Channel settings, Integrations, Webhooks, Copy Webhook URL). A ?thread_id= posts into a thread. Write-only: reads show urlHint.
+  - `label` (string): A name for the channel ("#alerts on our server"); "Discord" when omitted.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
+- Variant 5 (`kind` = `teams`):
+  - `kind` (string, required): one of `teams`. Channel kind.
+  - `url` (string, required): The Teams Workflows webhook URL (in Teams: the channel's menu, Workflows, "Send webhook alerts to a channel", then copy the URL it gives). Office 365 connector URLs (webhook.office.com), retired by Microsoft in 2026, are refused. Write-only: reads show urlHint.
+  - `label` (string): A name for the channel ("Marketing > Mentions"); "Teams" when omitted.
+  - `events` (array of string): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Attention events to receive here, on top of whatever rules send. Omit for none.
 
 Returns: 201, a `Channel` (see Shapes below).
 
@@ -345,9 +355,9 @@ Path:
 Body (JSON): Omitted fields are untouched.
 
 - `label` (string): Your name for the channel.
-- `url` (string): Webhooks only.
+- `url` (string): Webhook, Discord and Teams channels: a new URL (for Discord and Teams, a new incoming webhook URL, checked like on create).
 - `headers` (object): Webhooks only; replaces the whole set.
-- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email and Telegram take the attention events only. See [Account events](/webhooks/account-events).
+- `events` (array of string): one of `keyword.capped`, `keyword.paused_for_balance`, `keyword.resumed`, `wallet.low`, `wallet.paused`, `wallet.resumed`, `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. Replaces the account events the channel receives; empty unsubscribes it from all. A webhook takes any; Slack, email, Telegram, Discord and Teams take the attention events only. See [Account events](/webhooks/account-events).
 
 Returns: 200, a `Channel` (see Shapes below).
 
@@ -453,8 +463,8 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `notKeywordKinds` (array of string): one of `brand`, `competitor`, `topic`. Never matches of keywords of these kinds.
 - `groupIds` (array of string): Only matches of keywords in any of these groups (grp_...).
 - `notGroupIds` (array of string): Never matches of keywords in these groups.
-- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
-- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
+- `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from any of these platforms.
+- `notPlatforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Never posts from these platforms.
 - `status` (string): one of `open`, `ignored`, `done`. Only mentions in this status: open, ignored, done.
 - `relevant` (boolean): true: only mentions the classifier scored relevant; false: only the rest.
 - `minRelevance` (integer): Only mentions scored at least this.
@@ -519,7 +529,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `filter` (object, required): Which mentions the rule sends.
   - `keywordIds` (array of string): Only these keywords.
   - `groupIds` (array of string): Only keywords in these groups (grp_...): one rule per customer, say.
-  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
+  - `platforms` (array of string): one of `bluesky`, `hackernews`, `github`, `stackoverflow`, `devto`, `reddit`, `x`, `youtube`, `news`, `linkedin`, `tiktok`, `instagram`, `facebook`, `podcasts`, `appstore`, `googleplay`, `trustpilot`, `googlemaps`, `rss`. Only posts from these platforms.
   - `minRelevance` (integer): The rule's relevance floor. Absent: relevant mentions only (40 and up); lower, down to 0, it also gets noise; higher, less. Email channels keep the 40 line. Unclassified mentions never pass.
   - `minConfidence` (number): Only mentions whose classifier confidence is at least this, 0 to 1. A mention without a confidence never passes.
   - `sentiments` (array of string): one of `positive`, `neutral`, `negative`. Only these sentiments.
@@ -555,7 +565,7 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
 - `event` (string, required): Event name carried in webhook payloads; the mode default unless you set one.
 - `channels` (array of object, required): Where it sends.
   - `id` (string, required): Channel id (dest_...).
-  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`. Channel kind.
+  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`, `discord`, `teams`. Channel kind.
   - `label` (string, required): Channel name.
 - `stats` (object, required): Computed over this workspace's deliveries.
   - `sentLast7d` (integer, required): Deliveries in the last 7 days, across channels.
@@ -637,9 +647,43 @@ A group of conditions, all of which must hold: the vocabulary of a view filter, 
   - `chatType` (string, required): one of `private`, `group`, `supergroup`, `channel`. private, group, supergroup or channel.
   - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
 
+### DiscordChannel
+
+- `id` (string, required): Channel id (dest_...).
+- `label` (string, required): Your name for the channel.
+- `stats` (object, required): Computed over this workspace's deliveries.
+  - `alerts` (integer, required): Alerts sending to this channel.
+  - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
+  - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
+  - `last7d` (object, required): Deliveries in the last 7 days.
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
+- `createdAt` (string, required): ISO 8601 timestamp, UTC.
+- `kind` (string, required): one of `discord`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
+  - `urlHint` (string, required): The Discord webhook URL with its token hidden; the full URL is write-only.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+
+### TeamsChannel
+
+- `id` (string, required): Channel id (dest_...).
+- `label` (string, required): Your name for the channel.
+- `stats` (object, required): Computed over this workspace's deliveries.
+  - `alerts` (integer, required): Alerts sending to this channel.
+  - `activeAlerts` (integer, required): Of those, enabled ones; 0 means the channel receives nothing right now.
+  - `lastDeliveryAt` (string, required, nullable): Newest delivery attempt, successful or not.
+  - `last7d` (object, required): Deliveries in the last 7 days.
+    - `total` (integer, required): Sends attempted.
+    - `failed` (integer, required): Sends that failed.
+- `createdAt` (string, required): ISO 8601 timestamp, UTC.
+- `kind` (string, required): one of `teams`. Channel kind.
+- `config` (object, required): The channel's settings for its kind; secrets are never returned.
+  - `urlHint` (string, required): The Teams Workflows URL with its signature hidden; the full URL is write-only.
+  - `events` (array of string, required): one of `mention.spike`, `sentiment.negative_spike`, `keyword.noisy`, `channel.failing`, `feed.failing`, `feed.recovered`. The attention events this channel receives on its own, no rule involved: one short message when an item opens (GET /v1/attention). Empty when it receives none.
+
 ### Channel
 
-One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kind` tells them apart (`slack`, `email`, `webhook`, `telegram`).
+One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`, `DiscordChannel`, `TeamsChannel`; `kind` tells them apart (`slack`, `email`, `webhook`, `telegram`, `discord`, `teams`).
 
 ### LedgerList
 
@@ -735,7 +779,7 @@ One of `SlackChannel`, `EmailChannel`, `WebhookChannel`, `TelegramChannel`; `kin
 - `url` (string, required): Where to look in the dashboard.
 - `channel` (object, required): The channel whose sends fail.
   - `id` (string, required): Channel id (dest_...).
-  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`. slack, email, webhook or telegram.
+  - `kind` (string, required): one of `slack`, `email`, `webhook`, `telegram`, `discord`, `teams`. slack, email, webhook, telegram, discord or teams.
   - `label` (string, required): The channel's label.
 - `failures` (integer, required): Failed sends in a row within the last 24 hours.
 - `lastError` (string, required, nullable): The newest failure, as the transport reported it.
